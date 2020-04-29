@@ -1,0 +1,18 @@
+name: Release
+
+on:
+    push:
+        tags:
+        - 'v*'
+
+jobs:
+    build:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v1
+
+            - name: Docker Build Task
+              run: docker build -t rai .
+
+            - name: Docker Save
+              run: docker save rai > rai.docker

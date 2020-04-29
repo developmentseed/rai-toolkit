@@ -32,7 +32,7 @@ jobs:
                   tag_name: ${{ github.ref }}
                   release_name: ${{ steps.get_version.outputs.VERSION }}
                   body: |
-                      Release: {{ steps.get_version.outputs.VERSION }}
+                      Release: ${{ steps.get_version.outputs.VERSION }}
                   draft: false
                   prerelease: false
 

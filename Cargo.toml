@@ -1,0 +1,8 @@
+[package]
+name = "rai-toolkit"
+version = "0.1.0"
+authors = ["ingalls <nick@ingalls.ca>"]
+edition = "2018"
+
+[dependencies]
+clap-v3 = { version = "3.0.0-beta.1", features = ["yaml"] }

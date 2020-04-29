@@ -1,0 +1,25 @@
+name: rai-toolkit
+about: Calculate and conflate multiple roadnetworks, calculating RAI
+version: 0.1.0
+args:
+    - database:
+        short: d
+        long: database
+        value_name: DATABASE
+        help: Specify an alternate database in format USER@HOST:PORT/DATABASE or USER:PASS@PORT/DATABASE
+        takes_value: true
+
+subcommands:
+    - conflate:
+        about: controls testing features
+        args:
+            - debug:
+                short: d
+                help: print debug information
+
+    - calc:
+        about: Calculate RAI
+        args:
+            - debug:
+                short: d
+                help: print debug information

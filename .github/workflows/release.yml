@@ -15,4 +15,16 @@ jobs:
               run: docker build -t rai .
 
             - name: Docker Save
-              run: docker save rai > rai.docker
+              run: docker save rai > rai-${{ github.ref }}.docker
+
+            - name: Create Release
+              id: create_release
+              uses: actions/create-release@latest
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+              with:
+                  tag_name: ${{ github.ref }}
+              release_name: ${{ github.ref }}
+              body: Release: {{ github.ref }}
+              draft: false
+              prerelease: false

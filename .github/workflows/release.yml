@@ -14,8 +14,12 @@ jobs:
             - name: Docker Build Task
               run: docker build -t rai .
 
+            - name: Get the version
+              id: get_version
+              run: echo ::set-output name=VERSION::${GITHUB_REF/refs\/tags\//}
+
             - name: Docker Save
-              run: docker save rai > rai-${{ github.ref }}.docker
+              run: docker save rai > rai-${{ steps.get_version.outputs.VERSION }}.docker
 
             - name: Create Release
               id: create_release
@@ -24,9 +28,9 @@ jobs:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
               with:
                   tag_name: ${{ github.ref }}
-                  release_name: ${{ github.ref }}
+                  release_name: ${{ steps.get_version.outputs.VERSION }}
                   body: |
-                      Release: {{ github.ref }}
+                      Release: {{ steps.get_version.outputs.VERSION }}
                   draft: false
                   prerelease: false
 
@@ -37,6 +41,6 @@ jobs:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
               with:
                   upload_url: ${{ steps.create_release.outputs.upload_url }}
-                  asset_path: ./rai-${{ github.ref }}.docker
-                  asset_name: rai-${{ github.ref }}.docker
+                  asset_path: ./rai-${{ steps.get_version.outputs.VERSION }}.docker
+                  asset_name: rai-${{ steps.get_version.outputs.VERSION }}.docker
                   asset_content_type: application/octet-stream

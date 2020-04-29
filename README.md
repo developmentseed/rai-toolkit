@@ -5,13 +5,10 @@ conflation into a single network and then perform the [RAI calculation](https://
 
 ## Installation
 
-We recommend using the docker images provided for running the toolkit. Prebuild images
-are provided with each [release](https://github.com/developmentseed/rai-toolkit/releases).
+We recommend building and using the docker image for running the toolkit.
 
-Once the docker image has been downloaded, it can be loaded locally via the terminal using:
+From the terminal, run the following:
 
 ```sh
-cd Downloads
-
-docker load < rai-<version>.docker
+docker build -t rai .
 ```

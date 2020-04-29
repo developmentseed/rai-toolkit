@@ -13,13 +13,23 @@ subcommands:
     - conflate:
         about: controls testing features
         args:
-            - debug:
-                short: d
-                help: print debug information
+            - MASTER:
+                help: The base geospatial road network
+                required: true
+                index: 1
+            - NEW:
+                help: The geospatial road network to merge in
+                required: true
+                index: 2
 
     - calc:
         about: Calculate RAI
         args:
-            - debug:
-                short: d
-                help: print debug information
+            - NETWORK:
+                help: The base geospatial road network
+                required: true
+                index: 1
+            - POPULATION:
+                help: The population file to perform RAI calculations on
+                required: true
+                index: 2

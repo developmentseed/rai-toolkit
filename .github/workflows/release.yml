@@ -25,10 +25,10 @@ jobs:
               with:
                   tag_name: ${{ github.ref }}
                   release_name: ${{ github.ref }}
-              body: |
-                  Release: {{ github.ref }}
-              draft: false
-              prerelease: false
+                  body: |
+                      Release: {{ github.ref }}
+                  draft: false
+                  prerelease: false
 
             - name: Upload Release Asset
               id: upload-release-asset

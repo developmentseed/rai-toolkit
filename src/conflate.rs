@@ -1,34 +1,16 @@
+use crate::pg::{Table, InputTable, Network};
+use crate::stream::{GeoStream, NetStream};
+
 pub fn main(mut db: postgres::Client, args: &clap_v3::ArgMatches) {
-    tables(&mut db);
     println!("ok - formatted database");
 
-    let master_src = args.value_of("INPUT").unwrap();
-    let new_src = args.value_of("NEW").unwrap();
+    let master_src = args.value_of("MASTER").unwrap().to_string();
 
-}
+    let master = Network::new("master");
+    master.create(&mut db);
+    master.input(&mut db, NetStream::new(GeoStream::new(Some(master_src)), None));
 
-fn tables(db: &mut postgres::Client) {
-    db.execute("
-        DROP TABLE IF EXISTS master;
-    ", &[]).unwrap();
+    let _new_src = args.value_of("NEW").unwrap();
 
-    db.execute("
-        DROP TABLE IF EXISTS new;
-    ", &[]).unwrap();
 
-    db.execute("
-        CREATE UNLOGGED TABLE master (
-            id      BIGINT
-            props   JSONB
-            geom    GEOMETRY(MULTILINESTRING, 4326)
-        )
-    ", &[]).unwrap();
-
-    db.execute("
-        CREATE UNLOGGED TABLE master (
-            id      BIGINT
-            props   JSONB
-            geom    GEOMETRY(MULTILINESTRING, 4326)
-        )
-    ", &[]).unwrap();
 }

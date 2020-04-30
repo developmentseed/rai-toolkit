@@ -14,7 +14,7 @@ impl Network {
             _ => { return Err(String::from("Not a GeoJSON Feature")); }
         };
 
-        let mut props = match feat.properties {
+        let props = match feat.properties {
             Some(props) => props,
             None => { return Err(String::from("Feature has no properties")); }
         };

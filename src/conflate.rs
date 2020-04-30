@@ -8,7 +8,11 @@ pub fn main(mut db: postgres::Client, args: &clap_v3::ArgMatches) {
 
     let master = Network::new("master");
     master.create(&mut db);
-    master.input(&mut db, NetStream::new(GeoStream::new(Some(master_src)), None));
+    master.input(&mut db, NetStream::new(
+        GeoStream::new(Some(master_src)),
+        Some(String::from("/tmp/error.log")))
+    );
+    println!("ok - imported {} master lines", master.count(&mut db));
 
     let _new_src = args.value_of("NEW").unwrap();
 

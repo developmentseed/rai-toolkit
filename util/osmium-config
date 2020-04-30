@@ -1,8 +1,0 @@
-{
-    "attributes": {
-        "type":      true,
-        "id":        true,
-        "version":   true,
-        "user":      true
-    }
-}

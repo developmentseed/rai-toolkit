@@ -1,5 +1,6 @@
 use super::AsTSV;
 use std::convert::TryInto;
+use postgis::ewkb::EwkbWrite;
 
 pub struct Network {
     pub id: Option<i64>,
@@ -45,6 +46,35 @@ impl Network {
 
 impl AsTSV for Network {
     fn as_tsv(self) -> String {
-        String::from("")
+        let mut twkb = postgis::twkb::MultiLineString {
+            lines: Vec::with_capacity(self.geom.0.len()),
+            ids: None
+        };
+
+        for ln in self.geom {
+            let mut line = postgis::twkb::LineString {
+                points: Vec::with_capacity(ln.0.len())
+            };
+
+            for pt in ln {
+                line.points.push(postgis::twkb::Point {
+                    x: pt.x,
+                    y: pt.y
+                });
+            }
+
+            twkb.lines.push(line);
+        }
+
+        let geom = postgis::ewkb::EwkbMultiLineString {
+            geom: &twkb,
+            srid: Some(4326),
+            point_type: postgis::ewkb::PointType::Point
+        }.to_hex_ewkb();
+
+        format!("{props}\t{geom}\n",
+            props = serde_json::value::Value::from(self.props),
+            geom = geom
+        )
     }
 }

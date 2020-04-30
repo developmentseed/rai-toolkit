@@ -1,0 +1,37 @@
+#!/bin/bash
+
+CC=$1
+
+TIMESTAMP=$(date +%s)
+
+if [[ -z $CC ]]; then
+    echo "Usage:"
+    echo "  ./cache <Country>"
+    echo ""
+    echo "Download and extract the latest OSM PBF for a given country area"
+    echo ""
+    echo "Example"
+    echo "./cache ca"
+    exit
+fi
+
+set -euo pipefail
+
+URL=$(jq -rc .$CC $(dirname $0)/cache.conf)
+
+if [[ $URL == "null" ]]; then
+    echo
+    echo "not ok - download location not found in config ./util/cache.conf"
+    echo
+    exit 1
+fi
+
+curl $URL > /tmp/$CC.osm.pbf
+
+osmium export \
+    --config "$(dirname $0)/osmium-config" \
+    --output-format geojsonseq \
+    /tmp/$CC.osm.pbf \
+    > $(dirname $0)/../$CC.geojsonld \
+
+echo "ok - ./$CC.geojsonld"

@@ -6,7 +6,7 @@ TIMESTAMP=$(date +%s)
 
 if [[ -z $CC ]]; then
     echo "Usage:"
-    echo "  ./cache <Country>"
+    echo "  ./cache-osm <Country>"
     echo ""
     echo "Download and extract the latest OSM PBF for a given country area"
     echo ""
@@ -21,7 +21,7 @@ URL=$(jq -rc .$CC $(dirname $0)/cache.conf)
 
 if [[ $URL == "null" ]]; then
     echo
-    echo "not ok - download location not found in config ./util/cache.conf"
+    echo "not ok - download location not found in config ./util/cache-osm.conf"
     echo
     exit 1
 fi

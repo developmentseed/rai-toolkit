@@ -45,7 +45,6 @@ impl Table for Network {
         }
     }
 
-
     fn index(&self, conn: &mut Client) {
         conn.execute(format!("
             ALTER TABLE {name}
@@ -89,6 +88,7 @@ impl InputTable for Network {
         "#, &self.name).as_str()).unwrap();
 
         std::io::copy(&mut data, &mut stmt).unwrap();
+        stmt.finish().unwrap();
     }
 
     fn seq_id(&self, conn: &mut Client) {

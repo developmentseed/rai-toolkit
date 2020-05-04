@@ -1,0 +1,42 @@
+#!/bin/bash
+
+CC=$1
+
+TIMESTAMP=$(date +%s)
+
+if [[ -z $CC ]]; then
+    echo "Usage:"
+    echo "  ./cache-nasa <path>/*.asc"
+    echo ""
+    echo "Load .asc formatted NASA SEDAC data"
+    echo ""
+    echo "Example"
+    echo "./cache-nasa ~/path-to-asc-foler/"
+    exit
+fi
+
+set -euo pipefail
+
+echo "
+    CREATE DATABASE population;
+" | psql -U postgres
+
+echo "
+    CREATE EXTENSION postgis;
+" | psql -U postgres population
+
+echo "
+    CREATE EXTENSION postgis_raster;
+" | psql -U postgres population
+
+# -I Create a spatial index for imported data
+# -e Execute instructions individually instead of a transaction
+# -s Set EPSG code
+# -t Set tilesize
+#
+raster2pgsql \
+    -I -e \
+    -s 4326 \
+    -t auto \
+    $1/*.asc population \
+    > /tmp/raster.sql

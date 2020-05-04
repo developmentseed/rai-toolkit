@@ -29,7 +29,7 @@ subcommands:
                 help: The base geospatial road network
                 required: true
                 index: 1
-            - POPULATION:
+            - POP:
                 help: The population file to perform RAI calculations on
                 required: true
                 index: 2

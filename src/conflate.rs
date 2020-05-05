@@ -13,9 +13,8 @@ pub fn main(pool: r2d2::Pool<r2d2_postgres::PostgresConnectionManager<postgres::
 
     let mut manager = Vec::with_capacity(2);
     {
-        let pool = pool.clone();
+        let mut db = pool.get().unwrap();
         manager.push(thread::spawn(move || {
-            let mut db = pool.get().unwrap();
             master.create(&mut db);
             master.input(&mut db, NetStream::new(
                 GeoStream::new(Some(master_src)),
@@ -27,9 +26,8 @@ pub fn main(pool: r2d2::Pool<r2d2_postgres::PostgresConnectionManager<postgres::
     }
 
     {
-        let pool = pool.clone();
+        let mut db = pool.get().unwrap();
         manager.push(thread::spawn(move || {
-            let mut db = pool.get().unwrap();
             new.create(&mut db);
             new.input(&mut db, NetStream::new(
                 GeoStream::new(Some(new_src)),

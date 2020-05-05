@@ -5,7 +5,9 @@ use std::mem;
 use serde_json::Value;
 
 pub mod network;
+pub mod country;
 pub use self::network::Network;
+pub use self::country::Country;
 
 pub trait Table {
     fn create(&self, conn: &mut Client);

@@ -41,4 +41,8 @@ pub fn main(pool: r2d2::Pool<r2d2_postgres::PostgresConnectionManager<postgres::
     for thread in manager {
         thread.join().unwrap();
     }
+
+    pool.query(r#"
+        CREATE TABLE test AS SELECT ST_Clip(rast, geom, true) AS rast FROM population, country WHERE country.iso = 'ZA' AND ST_Intersects(rast, geom);
+    "#)
 }

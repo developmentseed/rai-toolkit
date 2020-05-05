@@ -39,4 +39,5 @@ raster2pgsql \
     -s 4326 \
     -t auto \
     $1/*.asc population \
-    > /tmp/raster.sql
+    | tee /tmp/raster.sql \
+    | psql -U postgres population

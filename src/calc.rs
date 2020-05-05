@@ -28,9 +28,13 @@ pub fn main(pool: r2d2::Pool<r2d2_postgres::PostgresConnectionManager<postgres::
     {
         let mut db = pool.get().unwrap();
         manager.push(thread::spawn(move || {
-            country.create(&mut db);
-            country.index(&mut db);
-            println!("ok - imported {} country polygons", country.count(&mut db));
+            if country.count(&mut db) == 0 {
+                country.create(&mut db);
+                country.index(&mut db);
+                println!("ok - imported {} country polygons", country.count(&mut db));
+            } else {
+                println!("ok - country table exists");
+            }
         }));
     }
 

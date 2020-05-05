@@ -47,13 +47,6 @@ impl Table for Network {
 
     fn index(&self, conn: &mut Client) {
         conn.execute(format!("
-            ALTER TABLE {name}
-                ALTER COLUMN geom
-                TYPE GEOMETRY(MULTILINESTRINGZ, 4326)
-                USING ST_GeomFromEWKT(Regexp_Replace(ST_AsEWKT(geom)::TEXT, '(?<=\\d)(?=[,)])', ' '||id, 'g'))
-        ", name = &self.name).as_str(), &[]).unwrap();
-
-        conn.execute(format!("
             CREATE INDEX {name}_idx ON {name} (id);
         ", name = &self.name).as_str(), &[]).unwrap();
 

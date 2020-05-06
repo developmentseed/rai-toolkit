@@ -44,20 +44,45 @@ pub fn main(pool: r2d2::Pool<r2d2_postgres::PostgresConnectionManager<postgres::
     }
 
     let mut db = pool.get().unwrap();
-    db.query(format!("
+    db.execute(format!("
         DROP TABLE IF EXISTS {}_raster
     ", &iso).as_str(), &[]).unwrap();
 
+    db.execute(format!("
+        DROP TABLE IF EXISTS {}_buffer
+    ", &iso).as_str(), &[]).unwrap();
 
-    db.query(format!("
+
+    db.execute(format!("
         CREATE TABLE {}_raster AS
             SELECT
+                rid,
                 ST_Clip(rast, geom, true) AS rast
             FROM
                 pop.population,
                 country
             WHERE
-                country.iso = $1
-                AND ST_Intersects(rast, geom);
+                LOWER(country.iso) = LOWER($1)
+                AND ST_Intersects(rast, geom)
     ", &iso).as_str(), &[&iso]).unwrap();
+
+    db.execute(format!("
+        ALTER TABLE {}_raster
+            ADD PRIMARY KEY (rid)
+    ", &iso).as_str(), &[]).unwrap();
+
+    db.execute(r#"
+        ALTER TABLE master
+            ADD COLUMN geom_buff GEOMETRY(MultiPolygon, 4326)
+    "#, &[]).unwrap();
+
+    db.execute(r#"
+        UPDATE master
+            SET geom_buff = ST_Multi(ST_Buffer(geom::GEOGRAPHY, 2000)::GEOMETRY)
+    "#, &[]).unwrap();
+
+    //db.query(format!("
+    //    UPDATE {}_raster
+    //        SET rast = ST_AddBand(rast, '1BB'::text, 0)
+    //", &iso).as_str(), &[]).unwrap();
 }

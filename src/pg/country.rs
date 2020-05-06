@@ -1,8 +1,6 @@
 use postgres::Client;
 use geojson::GeoJson;
-use std::io::Read;
-use super::{Table, InputTable};
-use std::collections::HashMap;
+use super::Table;
 
 pub struct Country {
     name: String

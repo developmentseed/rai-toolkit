@@ -3,9 +3,10 @@ use crate::stream::{GeoStream, NetStream};
 use std::thread;
 
 pub fn main(pool: r2d2::Pool<r2d2_postgres::PostgresConnectionManager<postgres::NoTls>>, args: &clap_v3::ArgMatches) {
+    let iso = args.value_of("iso").unwrap().to_string().to_lowercase();
+    println!("ok - processing {}", &iso);
 
     let master_src = args.value_of("NETWORK").unwrap().to_string();
-    let _pop_src = args.value_of("POP").unwrap().to_string();
 
     let master = Network::new("master");
     let country = Country::new();
@@ -42,7 +43,21 @@ pub fn main(pool: r2d2::Pool<r2d2_postgres::PostgresConnectionManager<postgres::
         thread.join().unwrap();
     }
 
-    pool.query(r#"
-        CREATE TABLE test AS SELECT ST_Clip(rast, geom, true) AS rast FROM population, country WHERE country.iso = 'ZA' AND ST_Intersects(rast, geom);
-    "#)
+    let mut db = pool.get().unwrap();
+    db.query(format!("
+        DROP TABLE IF EXISTS {}_raster
+    ", &iso).as_str(), &[]).unwrap();
+
+
+    db.query(format!("
+        CREATE TABLE {}_raster AS
+            SELECT
+                ST_Clip(rast, geom, true) AS rast
+            FROM
+                pop.population,
+                country
+            WHERE
+                country.iso = $1
+                AND ST_Intersects(rast, geom);
+    ", &iso).as_str(), &[&iso]).unwrap();
 }

@@ -25,11 +25,13 @@ subcommands:
     - calc:
         about: Calculate RAI
         args:
+            - iso:
+                long: iso
+                value_name: ISO
+                help: Specify the ISO 3166-alpha2 code of the country for the calculation
+                takes_value: true
+                required: true
             - NETWORK:
                 help: The base geospatial road network
                 required: true
                 index: 1
-            - POP:
-                help: The population file to perform RAI calculations on
-                required: true
-                index: 2

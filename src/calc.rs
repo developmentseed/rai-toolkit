@@ -1,8 +1,11 @@
 use crate::pg::{Table, InputTable, Network, Country};
+use indicatif::{ProgressBar, ProgressIterator, ProgressStyle};
 use crate::stream::{GeoStream, NetStream};
 use std::thread;
 
 pub fn main(pool: r2d2::Pool<r2d2_postgres::PostgresConnectionManager<postgres::NoTls>>, args: &clap_v3::ArgMatches) {
+    let _cpus = num_cpus::get();
+
     let iso = args.value_of("iso").unwrap().to_string().to_lowercase();
     println!("ok - processing {}", &iso);
 
@@ -52,6 +55,9 @@ pub fn main(pool: r2d2::Pool<r2d2_postgres::PostgresConnectionManager<postgres::
         DROP TABLE IF EXISTS {}_buffer
     ", &iso).as_str(), &[]).unwrap();
 
+    db.execute(format!("
+        DROP TABLE IF EXISTS {}_geom
+    ", &iso).as_str(), &[]).unwrap();
 
     db.execute(format!("
         CREATE TABLE {}_raster AS
@@ -65,6 +71,7 @@ pub fn main(pool: r2d2::Pool<r2d2_postgres::PostgresConnectionManager<postgres::
                 LOWER(country.iso) = LOWER($1)
                 AND ST_Intersects(rast, geom)
     ", &iso).as_str(), &[&iso]).unwrap();
+    println!("ok - created raster subset");
 
     db.execute(format!("
         ALTER TABLE {}_raster
@@ -81,8 +88,94 @@ pub fn main(pool: r2d2::Pool<r2d2_postgres::PostgresConnectionManager<postgres::
             SET geom_buff = ST_Multi(ST_Buffer(geom::GEOGRAPHY, 2000)::GEOMETRY)
     "#, &[]).unwrap();
 
-    //db.query(format!("
-    //    UPDATE {}_raster
-    //        SET rast = ST_AddBand(rast, '1BB'::text, 0)
-    //", &iso).as_str(), &[]).unwrap();
+    db.execute(r#"
+        DELETE
+            FROM
+                master
+            WHERE
+                NOT ST_IsValid(geom_buff);
+    "#, &[]).unwrap();
+
+    db.execute(r#"
+        CREATE INDEX master_buff_idx
+            ON master USING GIST (geom_buff)
+    "#, &[]).unwrap();
+
+    db.execute(format!("
+        CREATE TABLE {iso}_geom AS
+            SELECT
+                gv.rid AS rid,
+                (gv.geom).val AS pop,
+                (gv.geom).geom AS geom
+            FROM (
+                SELECT
+                    rid,
+                    ST_PixelAsPolygons(rast) AS geom
+                FROM
+                    {iso}_raster
+                ) gv
+            WHERE
+                (gv.geom).val > 0
+    ", iso = &iso).as_str(), &[]).unwrap();
+    println!("ok - created population areas");
+
+    db.execute(format!("
+        ALTER TABLE {iso}_geom
+            ADD COLUMN coverage INT
+    ", iso = &iso).as_str(), &[]).unwrap();
+
+    db.execute(format!("
+        ALTER TABLE {iso}_geom
+            ADD COLUMN coverage_geom GEOMETRY(MULTIPOLYGON, 4326)
+    ", iso = &iso).as_str(), &[]).unwrap();
+
+    db.execute(format!("
+        CREATE INDEX {iso}_geom_gidx
+            ON {iso}_geom USING GIST (geom)
+    ", iso = &iso).as_str(), &[]).unwrap();
+
+
+    db.execute(format!("
+        ALTER TABLE {iso}_geom
+            ADD COLUMN id BIGSERIAL
+    ", iso = &iso).as_str(), &[]).unwrap();
+
+    db.execute(format!("
+        CREATE INDEX {iso}_geom_idx
+            ON {iso}_geom(id)
+    ", iso = &iso).as_str(), &[]).unwrap();
+
+    let max: i64 = match db.query(format!("
+        SELECT
+            MAX(id)
+        FROM
+            {iso}_geom
+    ", iso = &iso).as_str(), &[]) {
+        Err(err) => panic!("{}", err),
+        Ok(res) => res.get(0).unwrap().get(0)
+    };
+
+    println!("ok - calculating coverage geometry\n");
+
+    for i in (1..=max).progress() {
+        db.execute(format!("
+            INSERT INTO {iso}_geom (
+                coverage_geom
+            )
+            SELECT
+                ST_Multi(ST_Union(fx.geom)) AS coverage_geom
+            FROM (
+                SELECT
+                    ST_Intersection(master.geom_buff, px.geom) AS geom
+                FROM
+                    master,
+                    {iso}_geom px
+                WHERE
+                    ST_Intersects(master.geom_buff, px.geom)
+                    AND px.id = $1
+            ) fx
+        ", iso = &iso).as_str(), &[&i]).unwrap();
+    }
+
+    println!("\nok - done calculating coverage geometry");
 }

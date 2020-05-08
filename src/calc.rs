@@ -182,8 +182,35 @@ pub fn main(pool: r2d2::Pool<r2d2_postgres::PostgresConnectionManager<postgres::
         ", iso = &iso).as_str(), &[&i]).unwrap();
         pb.inc(1);
     });
-
     pb.finish();
 
+    db.execute(format!("
+        UPDATE {iso}_geom
+            SET coverage = ROUND(LEAST(COALESCE(ST_Area(coverage_geom), 0.0) / ST_Area(geom), 1) * 100);
+    ", iso = &iso).as_str(), &[]).unwrap();
+
     println!("\nok - done calculating coverage geometry");
+
+    let covered: i64 = match db.query(format!("
+        SELECT
+            SUM(pop * coverage * 0.01)
+        FROM
+            {iso}_geom
+    ", iso = &iso).as_str(), &[]) {
+        Err(err) => panic!("{}", err),
+        Ok(res) => res.get(0).unwrap().get(0)
+    };
+
+    let uncovered: i64 = match db.query(format!("
+        SELECT
+            SUM(pop) - SUM(pop * coverage * 0.01)
+        FROM
+            {iso}_geom
+    ", iso = &iso).as_str(), &[]) {
+        Err(err) => panic!("{}", err),
+        Ok(res) => res.get(0).unwrap().get(0)
+    };
+
+    println!("Covered: {}", covered);
+    println!("Uncovered: {}", uncovered);
 }

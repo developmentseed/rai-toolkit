@@ -1,6 +1,7 @@
 use crate::pg::{Table, InputTable, Network, Country};
-use indicatif::{ProgressBar, ProgressIterator, ProgressStyle};
+use indicatif::ProgressBar;
 use crate::stream::{GeoStream, NetStream};
+use rayon::prelude::*;
 use std::thread;
 
 pub fn main(pool: r2d2::Pool<r2d2_postgres::PostgresConnectionManager<postgres::NoTls>>, args: &clap_v3::ArgMatches) {
@@ -157,25 +158,32 @@ pub fn main(pool: r2d2::Pool<r2d2_postgres::PostgresConnectionManager<postgres::
 
     println!("ok - calculating coverage geometry\n");
 
-    for i in (1..=max).progress() {
-        db.execute(format!("
-            INSERT INTO {iso}_geom (
-                coverage_geom
-            )
-            SELECT
-                ST_Multi(ST_Union(fx.geom)) AS coverage_geom
-            FROM (
-                SELECT
-                    ST_Intersection(master.geom_buff, px.geom) AS geom
-                FROM
-                    master,
-                    {iso}_geom px
+    let pb = ProgressBar::new(max as u64);
+
+    (1..=max).into_par_iter().for_each(|i| {
+        pool.get().unwrap().execute(format!("
+            UPDATE {iso}_geom
+                SET coverage_geom = (
+                    SELECT
+                        ST_Multi(ST_Union(fx.geom)) AS coverage_geom
+                    FROM (
+                        SELECT
+                            ST_Intersection(master.geom_buff, px.geom) AS geom
+                        FROM
+                            master,
+                            {iso}_geom px
+                        WHERE
+                            ST_Intersects(master.geom_buff, px.geom)
+                            AND px.id = $1
+                    ) fx
+                )
                 WHERE
-                    ST_Intersects(master.geom_buff, px.geom)
-                    AND px.id = $1
-            ) fx
+                    py_geom.id = $1
         ", iso = &iso).as_str(), &[&i]).unwrap();
-    }
+        pb.inc(1);
+    });
+
+    pb.finish();
 
     println!("\nok - done calculating coverage geometry");
 }

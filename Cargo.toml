@@ -5,6 +5,7 @@ authors = ["ingalls <nick@ingalls.ca>"]
 edition = "2018"
 
 [dependencies]
+rayon = "1.3"
 indicatif = "0.14"
 num_cpus = "1.13"
 geo = "0.13.0"

@@ -18,26 +18,24 @@ fi
 set -euo pipefail
 
 echo "
-    CREATE DATABASE population;
+    CREATE DATABASE rai;
 " | psql -U postgres
 
 echo "
     CREATE EXTENSION postgis;
-" | psql -U postgres population
-
-echo "
     CREATE EXTENSION postgis_raster;
-" | psql -U postgres population
+    CREATE SCHEMA IF NOT EXISTS pop;
+" | psql -U postgres rai
+
 
 # -I Create a spatial index for imported data
 # -e Execute instructions individually instead of a transaction
 # -s Set EPSG code
 # -t Set tilesize
-#
 raster2pgsql \
     -I -e \
     -s 4326 \
     -t auto \
-    $1/*.asc population \
+    $1/*.asc pop.population \
     | tee /tmp/raster.sql \
-    | psql -U postgres population
+    | psql -U postgres rai

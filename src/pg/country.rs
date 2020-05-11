@@ -7,9 +7,9 @@ pub struct Country {
 }
 
 impl Country {
-    pub fn new() -> Self {
+    pub fn new(name: String) -> Self {
         Country {
-            name: String::from("country")
+            name: name
         }
     }
 }
@@ -68,8 +68,8 @@ impl Table for Country {
                 None => panic!("Country Feature is missing geometry")
             };
 
-            conn.query(r#"
-                INSERT INTO country (
+            conn.query(format!("
+                INSERT INTO {} (
                     name,
                     iso,
                     geom
@@ -78,7 +78,7 @@ impl Table for Country {
                     $2,
                     ST_SetSRID(ST_Multi(ST_GeomFromGeoJSON($3)), 4326)
                 )
-            "#, &[
+            ", &self.name).as_str(), &[
                 &name,
                 &iso,
                 &geom
@@ -100,7 +100,7 @@ impl Table for Country {
 
     fn index(&self, conn: &mut Client) {
         conn.execute(format!("
-            CREATE INDEX {name}_gix ON {name} USING GIST (geom);
+            CREATE INDEX country_gix ON {name} USING GIST (geom);
         ", name = &self.name).as_str(), &[]).unwrap();
     }
 }

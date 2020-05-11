@@ -10,6 +10,19 @@ args:
         takes_value: true
 
 subcommands:
+    - list:
+        about: List countries that are currently loaded
+
+    - drop:
+        about: Drop a loaded country from the database
+        args:
+            - iso:
+                long: iso
+                value_name: ISO
+                help: Specify the ISO 3166-alpha2 code of the country to drop
+                takes_value: true
+                required: true
+
     - conflate:
         about: controls testing features
         args:

@@ -87,15 +87,15 @@ impl InputTable for Network {
     fn seq_id(&self, conn: &mut Client) {
         conn.execute(format!("
             DROP SEQUENCE IF EXISTS {name}_seq;
-        ", name = &self.name).as_str(), &[]).unwrap();
+        ", name = &self.name.replace(".", "_")).as_str(), &[]).unwrap();
 
         conn.execute(format!("
             CREATE SEQUENCE {name}_seq;
-        ", name = &self.name).as_str(), &[]).unwrap();
+        ", name = &self.name.replace(".", "_")).as_str(), &[]).unwrap();
 
         conn.execute(format!("
-            UPDATE $1
-                SET id = nextval('{name}_seq');
-        ", name = &self.name).as_str(), &[]).unwrap();
+            UPDATE {}
+                SET id = nextval('{}_seq');
+        ", &self.name, &self.name.replace(".", "_")).as_str(), &[]).unwrap();
     }
 }

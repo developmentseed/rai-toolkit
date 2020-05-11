@@ -17,6 +17,7 @@ fn main() {
     match args.subcommand() {
         ("conflate", Some(sub_args)) => rai_toolkit::conflate::main(pool, sub_args),
         ("calc", Some(sub_args)) => rai_toolkit::calc::main(pool, sub_args),
+        ("list", Some(sub_args)) => rai_toolkit::list::main(pool, sub_args),
         _ => {
             println!("Invalid Subcommand: ./rai-toolkit --help for valid options");
             std::process::exit(1);

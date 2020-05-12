@@ -47,16 +47,16 @@ impl Table for Network {
 
     fn index(&self, conn: &mut Client) {
         conn.execute(format!("
-            CREATE INDEX {name}_idx ON {name} (id);
-        ", name = &self.name).as_str(), &[]).unwrap();
+            CREATE INDEX {}_idx ON {} (id);
+        ", &self.name.replace(".", "_"), &self.name).as_str(), &[]).unwrap();
 
         conn.execute(format!("
-            CREATE INDEX {name}_gix ON {name} USING GIST (geom);
-        ", name = &self.name).as_str(), &[]).unwrap();
+            CREATE INDEX {}_gix ON {} USING GIST (geom);
+        ", &self.name.replace(".", "_"), &self.name).as_str(), &[]).unwrap();
 
         conn.execute(format!("
-            CLUSTER {name} USING {name}_idx;
-        ", name = &self.name).as_str(), &[]).unwrap();
+            CLUSTER {} USING {}_idx;
+        ", &self.name, &self.name.replace(".", "_")).as_str(), &[]).unwrap();
 
         conn.execute(format!("
             ANALYZE {name};
@@ -82,20 +82,5 @@ impl InputTable for Network {
 
         std::io::copy(&mut data, &mut stmt).unwrap();
         stmt.finish().unwrap();
-    }
-
-    fn seq_id(&self, conn: &mut Client) {
-        conn.execute(format!("
-            DROP SEQUENCE IF EXISTS {name}_seq;
-        ", name = &self.name.replace(".", "_")).as_str(), &[]).unwrap();
-
-        conn.execute(format!("
-            CREATE SEQUENCE {name}_seq;
-        ", name = &self.name.replace(".", "_")).as_str(), &[]).unwrap();
-
-        conn.execute(format!("
-            UPDATE {}
-                SET id = nextval('{}_seq');
-        ", &self.name, &self.name.replace(".", "_")).as_str(), &[]).unwrap();
     }
 }

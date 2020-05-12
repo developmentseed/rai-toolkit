@@ -13,6 +13,16 @@ subcommands:
     - list:
         about: List countries that are currently loaded
 
+    - viz:
+        about: Once a country is calc, open a webserver to visualize the output
+        args:
+            - iso:
+                long: iso
+                value_name: ISO
+                help: Specify the ISO 3166-alpha2 code of the country to drop
+                takes_value: true
+                required: true
+
     - drop:
         about: Drop a loaded country from the database
         args:

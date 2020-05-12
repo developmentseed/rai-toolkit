@@ -1,5 +1,3 @@
-use crate::pg::{Table, InputTable, Network};
-use crate::stream::{GeoStream, NetStream};
 
 pub fn main(pool: r2d2::Pool<r2d2_postgres::PostgresConnectionManager<postgres::NoTls>>, _args: &clap_v3::ArgMatches) {
     let countries = list(pool);

@@ -118,7 +118,7 @@ pub fn main(pool: r2d2::Pool<r2d2_postgres::PostgresConnectionManager<postgres::
                     rid,
                     ST_PixelAsPolygons(rast) AS geom
                 FROM
-                    {iso}_raster
+                    country_{iso}.{iso}_raster
                 ) gv
             WHERE
                 (gv.geom).val > 0
@@ -196,7 +196,7 @@ pub fn main(pool: r2d2::Pool<r2d2_postgres::PostgresConnectionManager<postgres::
 
     println!("\nok - done calculating coverage geometry");
 
-    let covered: i64 = match db.query(format!("
+    let covered: f64 = match db.query(format!("
         SELECT
             SUM(pop * coverage * 0.01)
         FROM
@@ -206,7 +206,7 @@ pub fn main(pool: r2d2::Pool<r2d2_postgres::PostgresConnectionManager<postgres::
         Ok(res) => res.get(0).unwrap().get(0)
     };
 
-    let uncovered: i64 = match db.query(format!("
+    let uncovered: f64 = match db.query(format!("
         SELECT
             SUM(pop) - SUM(pop * coverage * 0.01)
         FROM

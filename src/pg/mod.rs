@@ -21,7 +21,6 @@ pub trait Table {
 ///
 pub trait InputTable {
     fn input(&self, conn: &mut Client, data: impl Read);
-    fn seq_id(&self, conn: &mut Client);
 }
 
 ///

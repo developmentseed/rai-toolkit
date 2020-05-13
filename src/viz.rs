@@ -71,6 +71,7 @@ fn map_get(
 
 fn mvt_get(
     db: web::Data<r2d2::Pool<r2d2_postgres::PostgresConnectionManager<postgres::NoTls>>>,
+    iso: web::Data<Country>,
     path: web::Path<(u8, u32, u32)>
 ) -> HttpResponse {
     let z = path.0;
@@ -85,7 +86,7 @@ fn mvt_get(
            .body(body);
     }
 
-    let tile = match mvt::tile(&db, z, x, y) {
+    let tile = match mvt::tile(&db, &iso.0, z, x, y) {
         Ok(tile) => tile,
         Err(err) => {
             println!("{}", err);

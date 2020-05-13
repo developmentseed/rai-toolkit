@@ -38,7 +38,31 @@ export default {
                 this.map = new mapboxgl.Map({
                     container: 'map',
                     zoom: 1,
+                    bounds: res.bounds,
                     style: 'mapbox://styles/mapbox/light-v9'
+                });
+
+                this.map.on('load', () => {
+                    this.map.addSource('rai', {
+                        type: 'vector',
+                        tiles: [
+                            `${window.location.origin}/tiles/{z}/{x}/{y}`
+                        ],
+                        minzoom: 0,
+                        maxzoom: 16
+                    });
+
+                    this.map.addLayer({
+                        id: 'rai',
+                        type: 'fill',
+                        source: 'rai',
+                        'source-layer': 'data',
+                        layout: {},
+                        paint: {
+                            'fill-color': '#ff0000',
+                            'fill-opacity': 0.8
+                        }
+                    });
                 });
             });
         }

@@ -1,9 +1,11 @@
 use crate::mvt;
 use actix_web::{web, App, HttpResponse, HttpServer, middleware};
-use futures::Future;
 
 pub fn main(pool: r2d2::Pool<r2d2_postgres::PostgresConnectionManager<postgres::NoTls>>, args: &clap_v3::ArgMatches) {
     let iso = args.value_of("iso").unwrap().to_string().to_lowercase();
+
+    println!("\nPoint your browser to:");
+    println!("http://localhost:4001\n");
 
     HttpServer::new(move || {
         App::new()
@@ -17,7 +19,7 @@ pub fn main(pool: r2d2::Pool<r2d2_postgres::PostgresConnectionManager<postgres::
             )
             .service(web::scope("tiles")
                 .service(web::resource("{z}/{x}/{y}")
-                    .route(web::get().to_async(mvt_get))
+                    .route(web::get().to(mvt_get))
                 )
             )
         })
@@ -31,22 +33,35 @@ pub fn main(pool: r2d2::Pool<r2d2_postgres::PostgresConnectionManager<postgres::
 fn mvt_get(
     db: web::Data<r2d2::Pool<r2d2_postgres::PostgresConnectionManager<postgres::NoTls>>>,
     path: web::Path<(u8, u32, u32)>
-) -> impl Future<Item = HttpResponse, Error = String> {
-    web::block(move || {
-        let z = path.0;
-        let x = path.1;
-        let y = path.2;
+) -> HttpResponse {
+    let z = path.0;
+    let x = path.1;
+    let y = path.2;
 
-        if z > 17 { return Err(String::from("Tile Not Found")); }
+    if z > 17 {
+        let body = String::from("Tile not found");
+        return HttpResponse::build(actix_web::http::StatusCode::NOT_FOUND)
+           .content_type("text/plain")
+           .content_length(body.len() as u64)
+           .body(body);
+    }
 
-        Ok(mvt::tile(&db, z, x, y)?)
-    }).then(|res: Result<Vec<u8>, actix_threadpool::BlockingError<String>>| match res {
-        Ok(tile) => {
-            Ok(HttpResponse::build(actix_web::http::StatusCode::OK)
-               .content_type("application/x-protobuf")
-               .content_length(tile.len() as u64)
-               .body(tile))
-        },
-        Err(err) => Err(err.to_string())
-    })
+    let tile = match mvt::tile(&db, z, x, y) {
+        Ok(tile) => tile,
+        Err(err) => {
+            println!("{}", err);
+
+            let body: String = err.to_string();
+
+            return HttpResponse::build(actix_web::http::StatusCode::NOT_FOUND)
+               .content_type("text/plain")
+               .content_length(body.len() as u64)
+               .body(body);
+        }
+    };
+
+    HttpResponse::build(actix_web::http::StatusCode::OK)
+       .content_type("application/x-protobuf")
+       .content_length(tile.len() as u64)
+       .body(tile)
 }

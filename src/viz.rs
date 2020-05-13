@@ -1,8 +1,14 @@
+use serde_json::json;
 use crate::mvt;
-use actix_web::{web, App, HttpResponse, HttpServer, middleware};
+use actix_web::{web, App, HttpResponse, HttpServer, middleware, web::Json};
 
 pub fn main(pool: r2d2::Pool<r2d2_postgres::PostgresConnectionManager<postgres::NoTls>>, args: &clap_v3::ArgMatches) {
     let iso = args.value_of("iso").unwrap().to_string().to_lowercase();
+
+    let token = match std::env::var("MAPBOX_TOKEN") {
+        Ok(tk) => tk,
+        Err(e) => panic!("MAPBOX_TOKEN environemnt variable required"),
+    };
 
     println!("\nPoint your browser to:");
     println!("http://localhost:4001\n");
@@ -13,14 +19,18 @@ pub fn main(pool: r2d2::Pool<r2d2_postgres::PostgresConnectionManager<postgres::
             .wrap(middleware::Logger::default())
             .wrap(middleware::Compress::default())
             .data(pool.clone())
-            .service(
-                actix_files::Files::new("/", String::from("./web/dist/"))
-                .index_file("index.html")
-            )
+            .data(token.clone())
             .service(web::scope("tiles")
+                .service(web::resource("")
+                    .route(web::get().to(map_get))
+                )
                 .service(web::resource("{z}/{x}/{y}")
                     .route(web::get().to(mvt_get))
                 )
+            )
+            .service(
+                actix_files::Files::new("/", String::from("./web/dist/"))
+                .index_file("index.html")
             )
         })
             .workers(12 as usize)
@@ -28,6 +38,14 @@ pub fn main(pool: r2d2::Pool<r2d2_postgres::PostgresConnectionManager<postgres::
             .unwrap()
             .run()
             .unwrap();
+}
+
+fn map_get(
+    token: web::Data<String>
+) -> Json<serde_json::Value> {
+    Json(json!({
+        "token": token.as_str()
+    }))
 }
 
 fn mvt_get(

@@ -10,6 +10,14 @@ args:
         takes_value: true
 
 subcommands:
+    - filter:
+        about: Filter OSM data to only include linestrings/highways
+        args:
+            - OSM:
+                help: The base OSM file to filter
+                required: true
+                index: 1
+
     - list:
         about: List countries that are currently loaded
 

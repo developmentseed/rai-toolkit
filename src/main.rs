@@ -19,6 +19,7 @@ fn main() {
         ("calc", Some(sub_args)) => rai_toolkit::calc::main(pool, sub_args),
         ("list", Some(sub_args)) => rai_toolkit::list::main(pool, sub_args),
         ("drop", Some(sub_args)) => rai_toolkit::drop::main(pool, sub_args),
+        ("filter", Some(sub_args)) => rai_toolkit::filter::main(sub_args),
         ("viz", Some(sub_args)) => rai_toolkit::viz::main(pool, sub_args),
         _ => {
             println!("Invalid Subcommand: ./rai-toolkit --help for valid options");

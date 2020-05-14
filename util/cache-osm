@@ -31,6 +31,8 @@ curl $URL > /tmp/$CC.osm.pbf
 osmium export \
     --output-format geojsonseq \
     /tmp/$CC.osm.pbf \
-    > $(dirname $0)/../$CC.geojsonld
+    > /tmp/${CC}_unfiltered.geojsonld
+
+
 
 echo "ok - ./$CC.geojsonld"

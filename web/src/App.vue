@@ -43,24 +43,48 @@ export default {
                 });
 
                 this.map.on('load', () => {
-                    this.map.addSource('rai', {
+                    this.map.addSource('rai-coverage', {
                         type: 'vector',
                         tiles: [
-                            `${window.location.origin}/tiles/{z}/{x}/{y}`
+                            `${window.location.origin}/tiles/coverage/{z}/{x}/{y}`
+                        ],
+                        minzoom: 0,
+                        maxzoom: 16
+                    });
+
+                    this.map.addSource('rai-network', {
+                        type: 'vector',
+                        tiles: [
+                            `${window.location.origin}/tiles/network/{z}/{x}/{y}`
                         ],
                         minzoom: 0,
                         maxzoom: 16
                     });
 
                     this.map.addLayer({
-                        id: 'rai',
+                        id: 'rai-coverage',
                         type: 'fill',
-                        source: 'rai',
+                        source: 'rai-coverage',
                         'source-layer': 'data',
                         layout: {},
                         paint: {
                             'fill-color': '#ff0000',
                             'fill-opacity': 0.8
+                        }
+                    });
+
+                    this.map.addLayer({
+                        id: 'rai-network',
+                        type: 'line',
+                        source: 'rai-network',
+                        'source-layer': 'data',
+                        'layout': {
+                            'line-join': 'round',
+                            'line-cap': 'round'
+                        },
+                        'paint': {
+                            'line-color': '#888',
+                            'line-width': 1
                         }
                     });
                 });

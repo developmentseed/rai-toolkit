@@ -5,7 +5,11 @@ use std::thread;
 
 pub fn main(pool: r2d2::Pool<r2d2_postgres::PostgresConnectionManager<postgres::NoTls>>, args: &clap_v3::ArgMatches) {
     let iso = args.value_of("iso").unwrap().to_string().to_lowercase();
-    let iso = args.value_of("lang").unwrap().to_string().to_lowercase();
+    let langs: Vec<String> = args.value_of("lang").unwrap().to_string().to_lowercase().split(',').map(|i| {
+        String::from(i.trim())
+    }).collect();
+
+    let abbr = geocoder_abbreviations::config(langs).unwrap();
 
     let master_src = args.value_of("MASTER").unwrap().to_string();
     let new_src = args.value_of("NEW").unwrap().to_string();

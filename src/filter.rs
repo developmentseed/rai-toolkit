@@ -1,10 +1,6 @@
-use geojson::{Feature, GeoJson, Geometry, Value};
-use std::io::{self, Write};
-use crate::pg::{Table, InputTable, Network, Country};
-use indicatif::ProgressBar;
+use geojson::{Feature, GeoJson};
+use std::io::Write;
 use crate::stream::{GeoStream, NetStream};
-use rayon::prelude::*;
-use std::thread;
 
 pub fn main(args: &clap_v3::ArgMatches) {
     let osm_src = args.value_of("OSM").unwrap().to_string();

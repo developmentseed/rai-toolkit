@@ -17,6 +17,18 @@ subcommands:
                 help: The base OSM file to filter
                 required: true
                 index: 1
+            - iso:
+                long: iso
+                value_name: ISO
+                help: Specify the ISO 3166-alpha2 code of the country to conflate
+                takes_value: true
+                required: true
+            - lang:
+                long: lang
+                value_name: LANG
+                help: ISO language codes to use for comparison
+                takes_value: true
+                required: true
 
     - list:
         about: List countries that are currently loaded

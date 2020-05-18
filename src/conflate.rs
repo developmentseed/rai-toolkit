@@ -39,6 +39,7 @@ pub fn main(pool: r2d2::Pool<r2d2_postgres::PostgresConnectionManager<postgres::
 
     {
         let mut db = pool.get().unwrap();
+        let new = new.clone();
         manager.push(thread::spawn(move || {
             new.create(&mut db);
             new.input(&mut db, NetStream::new(
@@ -56,9 +57,9 @@ pub fn main(pool: r2d2::Pool<r2d2_postgres::PostgresConnectionManager<postgres::
         thread.join().unwrap();
     }
 
-    let max = master.max(&mut pool.get().unwrap()).unwrap();
+    let master_max = master.max(&mut pool.get().unwrap()).unwrap();
 
-    (1..=max).into_par_iter().for_each(|i| {
+    (1..=master_max).into_par_iter().for_each(|i| {
         let mut db = pool.get().unwrap();
 
         let props = master.props(&mut db, i);
@@ -71,6 +72,21 @@ pub fn main(pool: r2d2::Pool<r2d2_postgres::PostgresConnectionManager<postgres::
             abbr.process(&String::from(s), &iso.to_ascii_uppercase())
         }).collect();
 
-        println!("{:?}", names);
+        let names = serde_json::to_value(names).unwrap();
+
+        db.execute("
+            UPDATE master
+                SET
+                    name = $2::JSONB
+            WHERE
+                id = $1
+        ", &[&i, &names]).unwrap();
+    });
+
+    let new_max = new.max(&mut pool.get().unwrap()).unwrap();
+
+    (1..=new_max).into_par_iter().for_each(|i| {
+        let mut db = pool.get().unwrap();
+
     });
 }

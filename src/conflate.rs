@@ -71,6 +71,6 @@ pub fn main(pool: r2d2::Pool<r2d2_postgres::PostgresConnectionManager<postgres::
             abbr.process(&String::from(s), &iso.to_ascii_uppercase())
         }).collect();
 
-        println!("{:?}", props);
+        println!("{:?}", names);
     });
 }

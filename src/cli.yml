@@ -20,7 +20,7 @@ subcommands:
             - iso:
                 long: iso
                 value_name: ISO
-                help: Specify the ISO 3166-alpha2 code of the country to conflate
+                help: Specify the ISO 3166-alpha2 code of the country to filter
                 takes_value: true
                 required: true
             - lang:
@@ -64,6 +64,18 @@ subcommands:
                 help: The geospatial road network to merge in
                 required: true
                 index: 2
+            - iso:
+                long: iso
+                value_name: ISO
+                help: Specify the ISO 3166-alpha2 code of the country to drop
+                takes_value: true
+                required: true
+            - langs:
+                long: langs
+                value_name: LANGS
+                help: Specify the ISO language values for a given country (comma separated)
+                takes_value: true
+                required: true
 
     - calc:
         about: Calculate RAI

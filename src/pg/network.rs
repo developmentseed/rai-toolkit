@@ -2,6 +2,7 @@ use postgres::Client;
 use std::io::Read;
 use super::{Table, InputTable};
 
+#[derive(Clone)]
 pub struct Network {
     name: String
 }
@@ -11,6 +12,73 @@ impl Network {
         Network {
             name: name.to_string()
         }
+
+    }
+
+    pub fn props(&self, db: &mut Client, id: i64) -> serde_json::Map<String, serde_json::Value> {
+       let props: serde_json::Value = match db.query("
+            SELECT
+                props
+            FROM
+                master
+            WHERE
+                id = $1
+        ", &[&id]) {
+            Err(err) => panic!("{}", err),
+            Ok(res) => res.get(0).unwrap().get(0)
+        };
+
+        let props = match props {
+            serde_json::Value::Object(props) => props,
+            _ => panic!("props must be json object")
+        };
+
+        props
+    }
+
+    pub fn max(&self, db: &mut Client) -> Option<i64> {
+        let max: Option<i64> = match db.query("
+            SELECT
+                MAX(id)
+            FROM
+                master
+        ", &[]) {
+            Err(err) => panic!("{}", err),
+            Ok(res) => res.get(0).unwrap().get(0)
+        };
+
+        max
+    }
+
+    pub fn seq(&self, db: &mut Client) {
+        db.execute(format!("
+            ALTER TABLE {}
+                ADD COLUMN name JSONB
+        ", self.name).as_str(), &[]).unwrap();
+
+        db.execute(format!("
+            DROP SEQUENCE IF EXISTS {}_seq;
+        ", self.name).as_str(), &[]).unwrap();
+
+        db.execute(format!("
+            CREATE SEQUENCE {}_seq;
+        ", self.name).as_str(), &[]).unwrap();
+
+        db.execute(format!("
+            ALTER TABLE {name}
+                ALTER COLUMN id
+                    SET DEFAULT nextval('{name}_seq');
+        ", name = self.name).as_str(), &[]).unwrap();
+
+        db.execute(format!("
+            ALTER SEQUENCE {name}_seq OWNED BY {name}.id;
+        ", name = self.name).as_str(), &[]).unwrap();
+
+        db.execute(format!("
+            UPDATE {name}
+                SET
+                    id = nextval('{name}_seq')
+        ", name = self.name).as_str(), &[]).unwrap();
     }
 }
 

@@ -1,5 +1,5 @@
 use crate::pg::{Table, InputTable, Network};
-use crate::{Tokens, Tokenized, Name, Names};
+use crate::{Tokens, Tokenized, Name, Names, Context};
 use crate::stream::{GeoStream, NetStream};
 use crate::text::linker;
 use rayon::prelude::*;
@@ -26,7 +26,7 @@ pub fn main(pool: r2d2::Pool<r2d2_postgres::PostgresConnectionManager<postgres::
         String::from(i.trim())
     }).collect();
 
-    let abbr = Tokens::generate(langs);
+    let context = Context::new(iso, None, Tokens::generate(langs));
 
     let master_src = args.value_of("MASTER").unwrap().to_string();
     let new_src = args.value_of("NEW").unwrap().to_string();
@@ -81,22 +81,28 @@ pub fn main(pool: r2d2::Pool<r2d2_postgres::PostgresConnectionManager<postgres::
         let props = master.props(&mut db, i);
 
         if !props.contains_key("name") {
-            return;
+            db.execute("
+                UPDATE master
+                    SET
+                        name = '[]'::JSONB
+                WHERE
+                    id = $1
+            ", &[&i]).unwrap();
+        } else {
+            let names: Vec<Name> = props.get("name").unwrap().as_str().unwrap().split(";").map(|s| {
+                Name::new(s, 0, None, &context)
+            }).collect();
+
+            let names = serde_json::to_value(names).unwrap();
+
+            db.execute("
+                UPDATE master
+                    SET
+                        name = $2::JSONB
+                WHERE
+                    id = $1
+            ", &[&i, &names]).unwrap();
         }
-
-        let names: Vec<Vec<Tokenized>> = props.get("name").unwrap().as_str().unwrap().split(";").map(|s| {
-            abbr.process(&String::from(s), &iso.to_ascii_uppercase())
-        }).collect();
-
-        let names = serde_json::to_value(names).unwrap();
-
-        db.execute("
-            UPDATE master
-                SET
-                    name = $2::JSONB
-            WHERE
-                id = $1
-        ", &[&i, &names]).unwrap();
     });
 
     let new_max = new.max(&mut pool.get().unwrap()).unwrap();
@@ -106,14 +112,13 @@ pub fn main(pool: r2d2::Pool<r2d2_postgres::PostgresConnectionManager<postgres::
 
         let val = match db.query("
             SELECT
-                new.name,
                 new.props,
                 ST_AsGeoJSON(new.geom)::JSON AS geom,
                 Array_To_Json((Array_Agg(
                     JSON_Build_Object(
                         'id', master.id,
                         'props', master.props,
-                        'name', master.name,
+                        'names', master.name,
                         'geom', master.geom
                     )
                     ORDER BY ST_Distance(master.geom, new.geom)
@@ -126,45 +131,62 @@ pub fn main(pool: r2d2::Pool<r2d2_postgres::PostgresConnectionManager<postgres::
                 new.id = $1
             GROUP BY
                 new.id,
-                new.name,
+                new.props,
                 new.geom
         ", &[&i]) {
             Err(err) => panic!("{}", err.to_string()),
             Ok(rows) => {
                 let row = rows.get(0).unwrap();
 
-                let names: serde_json::Value = row.get(0);
-                let names: Vec<Name> = match serde_json::from_value(names) {
-                    Err(err) => panic!("JSON Failure: {}", err.to_string()),
-                    Ok(names) => names
-                };
-                let names = Names { names: names };
-
-                let props: serde_json::Value = row.get(1);
-                let geom: serde_json::Value = row.get(2);
-
-                let nets: serde_json::Value = row.get(3);
-                let nets: Vec<DbSerial> = match serde_json::from_value(nets) {
-                    Err(err) => panic!("JSON Failure: {}", err.to_string()),
-                    Ok(nets) => nets
+                let props: serde_json::Value = row.get(0);
+                let props = match props {
+                    serde_json::Value::Object(props) => props,
+                    _ => panic!("props must be an object")
                 };
 
-                let mut pnets: Vec<DbType> = Vec::with_capacity(nets.len());
-                for net in nets {
-                    pnets.push(DbType {
-                        id: net.id,
-                        geom: net.geom,
-                        props: net.props,
-                        names: Names {
-                            names: net.names
-                        }
-                    });
+                let geom: serde_json::Value = row.get(1);
+                let nets: Option<serde_json::Value> = row.get(2);
+
+                if nets.is_none() {
+                    // TODO
+                } else if !props.contains_key("name") {
+                    // TODO
+                } else {
+                    let names = Names {
+                        names: props.get("name").unwrap().as_str().unwrap().split(";").map(|s| {
+                            Name::new(s, 0, None, &context)
+                        }).collect()
+                    };
+
+                    let nets: Vec<DbSerial> = match serde_json::from_value(nets.unwrap()) {
+                        Err(err) => panic!("JSON Failure: {}", err.to_string()),
+                        Ok(nets) => nets
+                    };
+
+                    let mut pnets: Vec<DbType> = Vec::with_capacity(nets.len());
+                    for net in nets {
+                        pnets.push(DbType {
+                            id: net.id,
+                            geom: net.geom,
+                            props: net.props,
+                            names: Names {
+                                names: net.names
+                            }
+                        });
+                    }
+
+                    let primary = linker::Link::new(i, &names);
+                    let potentials: Vec<linker::Link> = pnets.iter().map(|net| {
+                        linker::Link::new(net.id, &net.names)
+                    }).collect();
+
+                    match linker::linker(primary, potentials, false) {
+                        Some(link_match) => {
+                            println!("{:?} {:?}", i, link_match);
+                        },
+                        None => ()
+                    };
                 }
-
-                let primary = linker::Link::new(i, &names);
-                let potentials: Vec<linker::Link> = pnets.iter().map(|net| {
-                    linker::Link::new(net.id, &net.names)
-                }).collect();
             }
         };
     });

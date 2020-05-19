@@ -1,8 +1,24 @@
 use crate::pg::{Table, InputTable, Network};
-use crate::{Tokens, Tokenized};
+use crate::{Tokens, Tokenized, Name, Names};
 use crate::stream::{GeoStream, NetStream};
+use crate::text::linker;
 use rayon::prelude::*;
 use std::thread;
+
+#[derive(Serialize, Deserialize)]
+pub struct DbSerial {
+    id: i64,
+    props: serde_json::Value,
+    names: Vec<Name>,
+    geom: serde_json::Value
+}
+
+pub struct DbType {
+    id: i64,
+    props: serde_json::Value,
+    names: Names,
+    geom: serde_json::Value
+}
 
 pub fn main(pool: r2d2::Pool<r2d2_postgres::PostgresConnectionManager<postgres::NoTls>>, args: &clap_v3::ArgMatches) {
     let iso = args.value_of("iso").unwrap().to_string().to_lowercase();
@@ -91,10 +107,12 @@ pub fn main(pool: r2d2::Pool<r2d2_postgres::PostgresConnectionManager<postgres::
         let val = match db.query("
             SELECT
                 new.name,
+                new.props,
                 ST_AsGeoJSON(new.geom)::JSON AS geom,
                 Array_To_Json((Array_Agg(
                     JSON_Build_Object(
                         'id', master.id,
+                        'props', master.props,
                         'name', master.name,
                         'geom', master.geom
                     )
@@ -115,9 +133,38 @@ pub fn main(pool: r2d2::Pool<r2d2_postgres::PostgresConnectionManager<postgres::
             Ok(rows) => {
                 let row = rows.get(0).unwrap();
 
-                let name: serde_json::Value = row.get(0);
-                let geom: serde_json::Value = row.get(1);
-                let nets: serde_json::Value = row.get(2);
+                let names: serde_json::Value = row.get(0);
+                let names: Vec<Name> = match serde_json::from_value(names) {
+                    Err(err) => panic!("JSON Failure: {}", err.to_string()),
+                    Ok(names) => names
+                };
+                let names = Names { names: names };
+
+                let props: serde_json::Value = row.get(1);
+                let geom: serde_json::Value = row.get(2);
+
+                let nets: serde_json::Value = row.get(3);
+                let nets: Vec<DbSerial> = match serde_json::from_value(nets) {
+                    Err(err) => panic!("JSON Failure: {}", err.to_string()),
+                    Ok(nets) => nets
+                };
+
+                let mut pnets: Vec<DbType> = Vec::with_capacity(nets.len());
+                for net in nets {
+                    pnets.push(DbType {
+                        id: net.id,
+                        geom: net.geom,
+                        props: net.props,
+                        names: Names {
+                            names: net.names
+                        }
+                    });
+                }
+
+                let primary = linker::Link::new(i, &names);
+                let potentials: Vec<linker::Link> = pnets.iter().map(|net| {
+                    linker::Link::new(net.id, &net.names)
+                }).collect();
             }
         };
     });

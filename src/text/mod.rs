@@ -2,7 +2,7 @@ mod diacritics;
 mod tokens;
 mod replace;
 mod titlecase;
-mod linker;
+pub mod linker;
 
 //
 // A note on fn names:

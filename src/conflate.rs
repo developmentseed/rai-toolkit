@@ -88,5 +88,37 @@ pub fn main(pool: r2d2::Pool<r2d2_postgres::PostgresConnectionManager<postgres::
     (1..=new_max).into_par_iter().for_each(|i| {
         let mut db = pool.get().unwrap();
 
+        let val = match db.query("
+            SELECT
+                new.name,
+                ST_AsGeoJSON(new.geom)::JSON AS geom,
+                Array_To_Json((Array_Agg(
+                    JSON_Build_Object(
+                        'id', master.id,
+                        'name', master.name,
+                        'geom', master.geom
+                    )
+                    ORDER BY ST_Distance(master.geom, new.geom)
+                ))[:10]) AS nets
+            FROM
+                master
+                    INNER JOIN new
+                        ON ST_DWithin(master.geom, new.geom, 0.001)
+            WHERE
+                new.id = $1
+            GROUP BY
+                new.id,
+                new.name,
+                new.geom
+        ", &[&i]) {
+            Err(err) => panic!("{}", err.to_string()),
+            Ok(rows) => {
+                let row = rows.get(0).unwrap();
+
+                let name: serde_json::Value = row.get(0);
+                let geom: serde_json::Value = row.get(1);
+                let nets: serde_json::Value = row.get(2);
+            }
+        };
     });
 }

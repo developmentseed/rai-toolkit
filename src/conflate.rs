@@ -209,8 +209,16 @@ pub fn main(pool: r2d2::Pool<r2d2_postgres::PostgresConnectionManager<postgres::
                         linker::Link::new(net.id, &net.names)
                     }).collect();
 
+                    let props = serde_json::Value::from(props);
                     match linker::linker(primary, potentials, false) {
                         Some(link_match) => {
+                            db.execute("
+                                UPDATE master
+                                    SET
+                                        props = props || $2
+                                    WHERE
+                                        id = $1
+                            ", &[&i, &props]).unwrap();
                         },
                         None => ()
                     };

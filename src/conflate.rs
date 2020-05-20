@@ -136,7 +136,24 @@ pub fn main(pool: r2d2::Pool<r2d2_postgres::PostgresConnectionManager<postgres::
         ", &[&i]) {
             Err(err) => panic!("{}", err.to_string()),
             Ok(rows) => {
-                let row = rows.get(0).unwrap();
+                let row = match rows.get(0) {
+                    Some(row) => row,
+                    None => {
+                        db.execute("
+                            INSERT INTO master (
+                                props,
+                                geom
+                            ) SELECT
+                                props,
+                                geom
+                            FROM
+                                new
+                            WHERE
+                                id = $1
+                        ", &[&i]).unwrap();
+                        return ();
+                    }
+                };
 
                 let props: serde_json::Value = row.get(0);
                 let props = match props {
@@ -147,10 +164,22 @@ pub fn main(pool: r2d2::Pool<r2d2_postgres::PostgresConnectionManager<postgres::
                 let geom: serde_json::Value = row.get(1);
                 let nets: Option<serde_json::Value> = row.get(2);
 
-                if nets.is_none() {
-                    // TODO
-                } else if !props.contains_key("name") {
-                    // TODO
+                if nets.is_none() || !props.contains_key("name") {
+                    // For now, roads without names are automatically inserted into final db
+                    // In the future a geometric comparison should be performed
+                    db.execute("
+                        INSERT INTO master (
+                            props,
+                            geom
+                        ) SELECT
+                            props,
+                            geom
+                        FROM
+                            new
+                        WHERE
+                            id = $1
+                    ", &[&i]).unwrap();
+                    return ();
                 } else {
                     let names = Names {
                         names: props.get("name").unwrap().as_str().unwrap().split(";").map(|s| {
@@ -182,7 +211,6 @@ pub fn main(pool: r2d2::Pool<r2d2_postgres::PostgresConnectionManager<postgres::
 
                     match linker::linker(primary, potentials, false) {
                         Some(link_match) => {
-                            println!("{:?} {:?}", i, link_match);
                         },
                         None => ()
                     };

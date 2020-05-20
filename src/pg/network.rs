@@ -16,14 +16,14 @@ impl Network {
     }
 
     pub fn props(&self, db: &mut Client, id: i64) -> serde_json::Map<String, serde_json::Value> {
-       let props: serde_json::Value = match db.query("
+       let props: serde_json::Value = match db.query(format!("
             SELECT
                 props
             FROM
-                master
+                {}
             WHERE
                 id = $1
-        ", &[&id]) {
+        ", &self.name).as_str(), &[&id]) {
             Err(err) => panic!("{}", err),
             Ok(res) => res.get(0).unwrap().get(0)
         };
@@ -37,12 +37,12 @@ impl Network {
     }
 
     pub fn max(&self, db: &mut Client) -> Option<i64> {
-        let max: Option<i64> = match db.query("
+        let max: Option<i64> = match db.query(format!("
             SELECT
                 MAX(id)
             FROM
-                master
-        ", &[]) {
+                {}
+        ", &self.name).as_str(), &[]) {
             Err(err) => panic!("{}", err),
             Ok(res) => res.get(0).unwrap().get(0)
         };

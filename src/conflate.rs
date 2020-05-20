@@ -1,8 +1,9 @@
 use crate::pg::{Table, InputTable, Network};
-use crate::{Tokens, Tokenized, Name, Names, Context};
+use crate::{Tokens, Name, Names, Context, pg};
 use crate::stream::{GeoStream, NetStream};
 use crate::text::linker;
 use rayon::prelude::*;
+use std::io::Write;
 use std::thread;
 
 #[derive(Serialize, Deserialize)]
@@ -22,9 +23,12 @@ pub struct DbType {
 
 pub fn main(pool: r2d2::Pool<r2d2_postgres::PostgresConnectionManager<postgres::NoTls>>, args: &clap_v3::ArgMatches) {
     let iso = args.value_of("iso").unwrap().to_string().to_lowercase();
+
     let langs: Vec<String> = args.value_of("langs").unwrap().to_string().to_lowercase().split(',').map(|i| {
         String::from(i.trim())
     }).collect();
+
+    let output = args.value_of("output").unwrap().to_string();
 
     let context = Context::new(iso, None, Tokens::generate(langs));
 
@@ -110,7 +114,7 @@ pub fn main(pool: r2d2::Pool<r2d2_postgres::PostgresConnectionManager<postgres::
     (1..=new_max).into_par_iter().for_each(|i| {
         let mut db = pool.get().unwrap();
 
-        let val = match db.query("
+        match db.query("
             SELECT
                 new.props,
                 ST_AsGeoJSON(new.geom)::JSON AS geom,
@@ -161,7 +165,7 @@ pub fn main(pool: r2d2::Pool<r2d2_postgres::PostgresConnectionManager<postgres::
                     _ => panic!("props must be an object")
                 };
 
-                let geom: serde_json::Value = row.get(1);
+                let _geom: serde_json::Value = row.get(1);
                 let nets: Option<serde_json::Value> = row.get(2);
 
                 if nets.is_none() || !props.contains_key("name") {
@@ -218,7 +222,7 @@ pub fn main(pool: r2d2::Pool<r2d2_postgres::PostgresConnectionManager<postgres::
                                         props = props || $2
                                     WHERE
                                         id = $1
-                            ", &[&i, &props]).unwrap();
+                            ", &[&link_match.id, &props]).unwrap();
                         },
                         None => ()
                     };
@@ -226,4 +230,23 @@ pub fn main(pool: r2d2::Pool<r2d2_postgres::PostgresConnectionManager<postgres::
             }
         };
     });
+
+    let mut output = std::fs::File::create(output).unwrap();
+
+    let db = pool.get().into();
+
+    let curr = pg::Cursor::new(db, String::from("
+        SELECT
+            json_build_object(
+                'type', 'Feature',
+                'properties', props,
+                'geometry', ST_AsGeoJSON(geom)::JSON
+            )
+        FROM
+            master
+    ")).unwrap();
+
+    for feat in curr {
+        output.write((feat.to_string() + "\n").as_bytes());
+    }
 }

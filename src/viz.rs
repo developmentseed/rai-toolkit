@@ -10,7 +10,7 @@ pub fn main(pool: r2d2::Pool<r2d2_postgres::PostgresConnectionManager<postgres::
 
     let token = match std::env::var("MAPBOX_TOKEN") {
         Ok(tk) => tk,
-        Err(e) => panic!("MAPBOX_TOKEN environemnt variable required"),
+        _ => panic!("MAPBOX_TOKEN environemnt variable required"),
     };
 
     println!("\nPoint your browser to:");

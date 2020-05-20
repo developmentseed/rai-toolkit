@@ -23,12 +23,6 @@ subcommands:
                 help: Specify the ISO 3166-alpha2 code of the country to filter
                 takes_value: true
                 required: true
-            - lang:
-                long: lang
-                value_name: LANG
-                help: ISO language codes to use for comparison
-                takes_value: true
-                required: true
 
     - list:
         about: List countries that are currently loaded
@@ -74,6 +68,13 @@ subcommands:
                 long: langs
                 value_name: LANGS
                 help: Specify the ISO language values for a given country (comma separated)
+                takes_value: true
+                required: true
+            - output:
+                long: output
+                short: o
+                value_name: OUTPUT
+                help: Output file to write to
                 takes_value: true
                 required: true
 

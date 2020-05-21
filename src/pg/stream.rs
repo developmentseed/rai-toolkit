@@ -76,7 +76,12 @@ impl std::io::Read for PGStream {
 }
 
 impl PGStream {
-    pub fn new(pg_conn: r2d2::PooledConnection<r2d2_postgres::PostgresConnectionManager<postgres::NoTls>>, cursor: String, query: String, params: &[&(dyn ToSql + std::marker::Sync)]) -> Result<Self, String> {
+    pub fn new(
+        pg_conn: r2d2::PooledConnection<r2d2_postgres::PostgresConnectionManager<postgres::NoTls>>,
+        cursor: String,
+        query: String,
+        params: &[&(dyn ToSql + std::marker::Sync)]
+    ) -> Result<Self, String> {
         let mut conn = Box::new(pg_conn);
 
         let mut trans: postgres::Transaction = unsafe {

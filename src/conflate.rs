@@ -234,14 +234,15 @@ pub fn main(pool: r2d2::Pool<r2d2_postgres::PostgresConnectionManager<postgres::
     let mut output = std::fs::File::create(output).unwrap();
 
     let mut stream = pg::stream::PGStream::new(pool.get().unwrap(), String::from("next"), String::from("
-        SELECT
-            json_build_object(
-                'type', 'Feature',
-                'properties', props,
-                'geometry', ST_AsGeoJSON(geom)::JSON
-            )
-        FROM
-            master
+        DECLARE next CURSOR FOR
+            SELECT
+                json_build_object(
+                    'type', 'Feature',
+                    'properties', props,
+                    'geometry', ST_AsGeoJSON(geom)::JSON
+                )::TEXT
+            FROM
+                master
     "), &[]).unwrap();
 
     std::io::copy(&mut stream, &mut output).unwrap();

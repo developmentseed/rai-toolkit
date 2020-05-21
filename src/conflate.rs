@@ -3,7 +3,6 @@ use crate::{Tokens, Name, Names, Context, pg};
 use crate::stream::{GeoStream, NetStream};
 use crate::text::linker;
 use rayon::prelude::*;
-use std::io::Write;
 use std::thread;
 
 #[derive(Serialize, Deserialize)]
@@ -77,37 +76,8 @@ pub fn main(pool: r2d2::Pool<r2d2_postgres::PostgresConnectionManager<postgres::
         thread.join().unwrap();
     }
 
-    let master_max = master.max(&mut pool.get().unwrap()).unwrap();
-
-    (1..=master_max).into_par_iter().for_each(|i| {
-        let mut db = pool.get().unwrap();
-
-        let props = master.props(&mut db, i);
-
-        if !props.contains_key("name") {
-            db.execute("
-                UPDATE master
-                    SET
-                        name = '[]'::JSONB
-                WHERE
-                    id = $1
-            ", &[&i]).unwrap();
-        } else {
-            let names: Vec<Name> = props.get("name").unwrap().as_str().unwrap().split(";").map(|s| {
-                Name::new(s, 0, None, &context)
-            }).collect();
-
-            let names = serde_json::to_value(names).unwrap();
-
-            db.execute("
-                UPDATE master
-                    SET
-                        name = $2::JSONB
-                WHERE
-                    id = $1
-            ", &[&i, &names]).unwrap();
-        }
-    });
+    name(&pool, &master, &context);
+    name(&pool, &new, &context);
 
     let new_max = new.max(&mut pool.get().unwrap()).unwrap();
 
@@ -117,6 +87,7 @@ pub fn main(pool: r2d2::Pool<r2d2_postgres::PostgresConnectionManager<postgres::
         match db.query("
             SELECT
                 new.props,
+                new.name,
                 ST_AsGeoJSON(new.geom)::JSON AS geom,
                 Array_To_Json((Array_Agg(
                     JSON_Build_Object(
@@ -135,6 +106,7 @@ pub fn main(pool: r2d2::Pool<r2d2_postgres::PostgresConnectionManager<postgres::
                 new.id = $1
             GROUP BY
                 new.id,
+                new.name,
                 new.props,
                 new.geom
         ", &[&i]) {
@@ -145,9 +117,11 @@ pub fn main(pool: r2d2::Pool<r2d2_postgres::PostgresConnectionManager<postgres::
                     None => {
                         db.execute("
                             INSERT INTO master (
+                                name,
                                 props,
                                 geom
                             ) SELECT
+                                name,
                                 props,
                                 geom
                             FROM
@@ -165,17 +139,23 @@ pub fn main(pool: r2d2::Pool<r2d2_postgres::PostgresConnectionManager<postgres::
                     _ => panic!("props must be an object")
                 };
 
-                let _geom: serde_json::Value = row.get(1);
-                let nets: Option<serde_json::Value> = row.get(2);
+                let names: serde_json::Value = row.get(1);
+                let names: Vec<Name> = serde_json::from_value(names).unwrap();
+                let names = Names { names: names };
 
-                if nets.is_none() || !props.contains_key("name") {
+                let _geom: serde_json::Value = row.get(2);
+                let nets: Option<serde_json::Value> = row.get(3);
+
+                if nets.is_none() || !props.contains_key("name") || props.get("name").unwrap().is_null() {
                     // For now, roads without names are automatically inserted into final db
                     // In the future a geometric comparison should be performed
                     db.execute("
                         INSERT INTO master (
+                            name,
                             props,
                             geom
                         ) SELECT
+                            name,
                             props,
                             geom
                         FROM
@@ -185,12 +165,6 @@ pub fn main(pool: r2d2::Pool<r2d2_postgres::PostgresConnectionManager<postgres::
                     ", &[&i]).unwrap();
                     return ();
                 } else {
-                    let names = Names {
-                        names: props.get("name").unwrap().as_str().unwrap().split(";").map(|s| {
-                            Name::new(s, 0, None, &context)
-                        }).collect()
-                    };
-
                     let nets: Vec<DbSerial> = match serde_json::from_value(nets.unwrap()) {
                         Err(err) => panic!("JSON Failure: {}", err.to_string()),
                         Ok(nets) => nets
@@ -216,13 +190,13 @@ pub fn main(pool: r2d2::Pool<r2d2_postgres::PostgresConnectionManager<postgres::
                     let props = serde_json::Value::from(props);
                     match linker::linker(primary, potentials, false) {
                         Some(link_match) => {
-                            db.execute("
+                            db.execute(r#"
                                 UPDATE master
                                     SET
-                                        props = props || $2
+                                        props = props || $2 || '{ "conflated": true }'::JSONB
                                     WHERE
                                         id = $1
-                            ", &[&link_match.id, &props]).unwrap();
+                            "#, &[&link_match.id, &props]).unwrap();
                         },
                         None => ()
                     };
@@ -247,3 +221,42 @@ pub fn main(pool: r2d2::Pool<r2d2_postgres::PostgresConnectionManager<postgres::
 
     std::io::copy(&mut stream, &mut output).unwrap();
 }
+
+fn name(pool: &r2d2::Pool<r2d2_postgres::PostgresConnectionManager<postgres::NoTls>>, table: &(impl Table + std::marker::Sync), context: &Context) {
+    let max = table.max(&mut pool.get().unwrap()).unwrap();
+
+    (1..=max).into_par_iter().for_each(|i| {
+        let mut db = pool.get().unwrap();
+
+        let props = table.props(&mut db, i);
+
+        if !props.contains_key("name") || props.get("name").unwrap().is_null() {
+            db.execute(format!("
+                UPDATE {table}
+                    SET
+                        name = '[]'::JSONB
+                WHERE
+                    id = $1
+            ",
+                table = table.name()
+            ).as_str(), &[&i]).unwrap();
+        } else {
+            let names: Vec<Name> = props.get("name").unwrap().as_str().unwrap().split(";").map(|s| {
+                Name::new(s, 0, None, &context)
+            }).collect();
+
+            let names = serde_json::to_value(names).unwrap();
+
+            db.execute(format!("
+                UPDATE {table}
+                    SET
+                        name = $2::JSONB
+                WHERE
+                    id = $1
+            ",
+                table = table.name()
+            ).as_str(), &[&i, &names]).unwrap();
+        }
+    });
+}
+

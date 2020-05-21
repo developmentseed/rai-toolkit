@@ -14,6 +14,9 @@ pub trait Table {
     fn create(&self, conn: &mut Client);
     fn count(&self, conn: &mut Client) -> i64;
     fn index(&self, conn: &mut Client);
+    fn max(&self, conn: &mut Client) -> Option<i64>;
+    fn name(&self) -> &String;
+    fn props(&self, conn: &mut Client, id: i64) -> serde_json::Map<String, serde_json::Value>;
 }
 
 ///

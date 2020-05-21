@@ -86,6 +86,24 @@ impl Table for Country {
         }
     }
 
+    fn max(&self, db: &mut Client) -> Option<i64> {
+        let max: Option<i64> = match db.query(format!("
+            SELECT
+                MAX(id)
+            FROM
+                {}
+        ", &self.name).as_str(), &[]) {
+            Err(err) => panic!("{}", err),
+            Ok(res) => res.get(0).unwrap().get(0)
+        };
+
+        max
+    }
+
+    fn name(&self) -> &String {
+        &self.name
+    }
+
     fn count(&self, conn: &mut Client) -> i64 {
         match conn.query(format!("
             SELECT count(*) FROM {}
@@ -96,6 +114,10 @@ impl Table for Country {
             },
             _ => 0
         }
+    }
+
+    fn props(&self, _db: &mut Client, _id: i64) -> serde_json::Map<String, serde_json::Value> {
+        serde_json::Map::new()
     }
 
     fn index(&self, conn: &mut Client) {

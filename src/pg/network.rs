@@ -15,41 +15,6 @@ impl Network {
 
     }
 
-    pub fn props(&self, db: &mut Client, id: i64) -> serde_json::Map<String, serde_json::Value> {
-       let props: serde_json::Value = match db.query(format!("
-            SELECT
-                props
-            FROM
-                {}
-            WHERE
-                id = $1
-        ", &self.name).as_str(), &[&id]) {
-            Err(err) => panic!("{}", err),
-            Ok(res) => res.get(0).unwrap().get(0)
-        };
-
-        let props = match props {
-            serde_json::Value::Object(props) => props,
-            _ => panic!("props must be json object")
-        };
-
-        props
-    }
-
-    pub fn max(&self, db: &mut Client) -> Option<i64> {
-        let max: Option<i64> = match db.query(format!("
-            SELECT
-                MAX(id)
-            FROM
-                {}
-        ", &self.name).as_str(), &[]) {
-            Err(err) => panic!("{}", err),
-            Ok(res) => res.get(0).unwrap().get(0)
-        };
-
-        max
-    }
-
     pub fn seq(&self, db: &mut Client) {
         db.execute(format!("
             ALTER TABLE {}
@@ -129,6 +94,45 @@ impl Table for Network {
         conn.execute(format!("
             ANALYZE {name};
         ", name = &self.name).as_str(), &[]).unwrap();
+    }
+
+    fn name(&self) -> &String {
+        &self.name
+    }
+
+    fn max(&self, db: &mut Client) -> Option<i64> {
+        let max: Option<i64> = match db.query(format!("
+            SELECT
+                MAX(id)
+            FROM
+                {}
+        ", &self.name).as_str(), &[]) {
+            Err(err) => panic!("{}", err),
+            Ok(res) => res.get(0).unwrap().get(0)
+        };
+
+        max
+    }
+
+    fn props(&self, db: &mut Client, id: i64) -> serde_json::Map<String, serde_json::Value> {
+       let props: serde_json::Value = match db.query(format!("
+            SELECT
+                props
+            FROM
+                {}
+            WHERE
+                id = $1
+        ", &self.name).as_str(), &[&id]) {
+            Err(err) => panic!("{}", err),
+            Ok(res) => res.get(0).unwrap().get(0)
+        };
+
+        let props = match props {
+            serde_json::Value::Object(props) => props,
+            _ => panic!("props must be json object")
+        };
+
+        props
     }
 }
 

@@ -1,7 +1,5 @@
 use postgres::types::ToSql;
 use std::io::{Error, ErrorKind};
-use bytes::Bytes;
-use futures::Async;
 
 use std::mem;
 
@@ -11,45 +9,9 @@ pub struct PGStream {
     eot: bool, //End of Tranmission has been sent
     cursor: String,
     pending: Option<Vec<u8>>,
-    trans: postgres::transaction::Transaction<'static>,
+    trans: postgres::Transaction<'static>,
     #[allow(dead_code)]
-    conn: Box<r2d2::PooledConnection<r2d2_postgres::PostgresConnectionManager>>
-}
-
-impl futures::stream::Stream for PGStream {
-    type Item = Bytes;
-    type Error = String;
-
-    fn poll(&mut self) -> Result<futures::Async<Option<Self::Item>>, Self::Error> {
-        let rows = match self.trans.query(&*format!("FETCH 1000 FROM {};", &self.cursor), &[]) {
-            Ok(rows) => rows,
-            Err(err) => { return Err(err.to_string()); }
-        };
-
-        if rows.is_empty() {
-            if self.eot {
-                // The Stream is complete
-                return Ok(Async::Ready(None));
-            } else {
-                self.eot = true;
-                // Write EOD Character to Stream
-                let mut bytes = Bytes::new();
-                bytes.extend_from_slice(&[EOT]);
-
-                return Ok(Async::Ready(Some(bytes)));
-            }
-        }
-
-        let mut feats = String::new();
-
-        for row_it in 0..rows.len() {
-            let feat: String = rows.get(row_it).get(0);
-            feats.push_str(&*feat);
-            feats.push('\n');
-        }
-
-        Ok(Async::Ready(Some(Bytes::from(feats))))
-    }
+    conn: Box<r2d2::PooledConnection<r2d2_postgres::PostgresConnectionManager<postgres::NoTls>>>
 }
 
 impl std::io::Read for PGStream {
@@ -72,7 +34,7 @@ impl std::io::Read for PGStream {
 
                 if !rows.is_empty() {
                     for row_it in 0..rows.len() {
-                        let feat: String = rows.get(row_it).get(0);
+                        let feat: String = rows.get(row_it).unwrap().get(0);
                         write.append(&mut feat.into_bytes().to_vec());
                         write.push(0x0A);
                     }
@@ -114,10 +76,10 @@ impl std::io::Read for PGStream {
 }
 
 impl PGStream {
-    pub fn new(pg_conn: r2d2::PooledConnection<r2d2_postgres::PostgresConnectionManager>, cursor: String, query: String, params: &[&dyn ToSql]) -> Result<Self, String> {
-        let conn = Box::new(pg_conn);
+    pub fn new(pg_conn: r2d2::PooledConnection<r2d2_postgres::PostgresConnectionManager<postgres::NoTls>>, cursor: String, query: String, params: &[&(dyn ToSql + std::marker::Sync)]) -> Result<Self, String> {
+        let mut conn = Box::new(pg_conn);
 
-        let trans: postgres::transaction::Transaction = unsafe {
+        let mut trans: postgres::Transaction = unsafe {
             mem::transmute(conn.transaction().unwrap())
         };
 

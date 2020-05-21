@@ -233,9 +233,7 @@ pub fn main(pool: r2d2::Pool<r2d2_postgres::PostgresConnectionManager<postgres::
 
     let mut output = std::fs::File::create(output).unwrap();
 
-    let db = pool.get().into();
-
-    let curr = pg::Cursor::new(db, String::from("
+    let mut stream = pg::stream::PGStream::new(pool.get().unwrap(), String::from("next"), String::from("
         SELECT
             json_build_object(
                 'type', 'Feature',
@@ -244,9 +242,7 @@ pub fn main(pool: r2d2::Pool<r2d2_postgres::PostgresConnectionManager<postgres::
             )
         FROM
             master
-    ")).unwrap();
+    "), &[]).unwrap();
 
-    for feat in curr {
-        output.write((feat.to_string() + "\n").as_bytes());
-    }
+    std::io::copy(&mut stream, &mut output).unwrap();
 }

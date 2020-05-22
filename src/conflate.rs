@@ -3,6 +3,7 @@ use crate::{Tokens, Name, Names, Context, pg};
 use crate::stream::{GeoStream, NetStream};
 use crate::text::linker;
 use rayon::prelude::*;
+use crate::filter;
 use std::thread;
 
 #[derive(Serialize, Deserialize)]
@@ -49,6 +50,7 @@ pub fn main(pool: r2d2::Pool<r2d2_postgres::PostgresConnectionManager<postgres::
                 GeoStream::new(Some(master_src)),
                 Some(String::from("/tmp/master_error.log")))
             );
+            surface(&mut db, &master);
             master.index(&mut db);
             master.seq(&mut db);
             println!("ok - imported {} master lines", master.count(&mut db));
@@ -65,6 +67,7 @@ pub fn main(pool: r2d2::Pool<r2d2_postgres::PostgresConnectionManager<postgres::
                 GeoStream::new(Some(new_src)),
                 Some(String::from("/tmp/new_error.log")))
             );
+            surface(&mut db, &new);
             new.index(&mut db);
             new.seq(&mut db);
             println!("ok - imported {} new lines", new.count(&mut db));
@@ -260,3 +263,17 @@ fn name(pool: &r2d2::Pool<r2d2_postgres::PostgresConnectionManager<postgres::NoT
     });
 }
 
+fn surface(db: &mut postgres::Client, table: &impl Table) {
+    let rejects = filter::default_surface();
+
+    for reject in rejects {
+        db.execute(format!("
+            DELETE FROM
+                {table}
+            WHERE
+                props->>'surface' = $1
+        ",
+            table = table.name()
+        ).as_str(), &[&reject.to_string()]).unwrap();
+    }
+}

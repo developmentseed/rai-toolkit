@@ -35,6 +35,26 @@ pub fn main(args: &clap_v3::ArgMatches) {
             None => continue
         };
 
+        match feat.props.get("surface") {
+            Some(surface) => {
+                let surface = surface.as_str().unwrap();
+
+                let reject = vec![
+                    "dirt",
+                    "earth",
+                    "ground",
+                    "mud",
+                    "sand",
+                    "unpaved"
+                ];
+
+                if reject.contains(&surface) {
+                    continue;
+                }
+            },
+            None => ()
+        };
+
         let f = GeoJson::Feature(Feature {
             id: None,
             bbox: None,

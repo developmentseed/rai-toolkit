@@ -35,7 +35,6 @@ fn filter(feat: &Network) -> bool {
                 "primary",
                 "primary_link",
                 "residential",
-                "road",
                 "secondary",
                 "secondary_link",
                 "service",
@@ -65,7 +64,12 @@ fn filter(feat: &Network) -> bool {
                 "ground",
                 "mud",
                 "sand",
-                "unpaved"
+                "grass",
+                "unpaved",
+                "compacted",
+                "fine_gravel",
+                "gravel",
+                "pebblestone"
             ];
 
             if reject.contains(&surface) {

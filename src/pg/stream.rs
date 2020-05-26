@@ -3,10 +3,7 @@ use std::io::{Error, ErrorKind};
 
 use std::mem;
 
-static EOT: u8 = 0x04;
-
 pub struct PGStream {
-    eot: bool, //End of Tranmission has been sent
     cursor: String,
     pending: Option<Vec<u8>>,
     trans: postgres::Transaction<'static>,
@@ -41,12 +38,7 @@ impl std::io::Read for PGStream {
                 }
             }
 
-            if write.is_empty() && !self.eot {
-                write.push(0x04); //Write EOT Character To Stream
-                self.eot = true;
-            }
-
-            if write.is_empty() && self.eot {
+            if write.is_empty() {
                 //No more data to fetch, close up shop
                 break;
             } else if current + write.len() > buf.len() {
@@ -91,7 +83,6 @@ impl PGStream {
         match trans.execute(&*query, params) {
             Ok(_) => {
                 Ok(PGStream {
-                    eot: false,
                     cursor,
                     pending: None,
                     trans,

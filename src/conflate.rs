@@ -264,7 +264,7 @@ fn name(pool: &r2d2::Pool<r2d2_postgres::PostgresConnectionManager<postgres::NoT
 }
 
 fn surface(db: &mut postgres::Client, table: &impl Table) {
-    let rejects = filter::default_surface();
+    let rejects = filter::reject_surface();
 
     for reject in rejects {
         db.execute(format!("

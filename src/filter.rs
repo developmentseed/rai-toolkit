@@ -23,26 +23,45 @@ pub fn main(args: &clap_v3::ArgMatches) {
     }
 }
 
-pub fn default_highway() -> Vec<&'static str> {
+pub fn conditional_highway() -> Vec<&'static str> {
     vec![
         "living_street",
+        "unclassified",
+        "residential",
+        "service"
+    ]
+}
+
+pub fn default_highway() -> Vec<&'static str> {
+    vec![
         "motorway",
         "motorway_link",
         "primary",
         "primary_link",
-        "residential",
         "secondary",
         "secondary_link",
-        "service",
         "tertiary",
         "tertiary_link",
         "trunk",
-        "trunk_link",
-        "unclassified"
+        "trunk_link"
     ]
 }
 
-pub fn default_surface() -> Vec<&'static str> {
+pub fn pref_surface() -> Vec<&'static str> {
+    vec![
+        "paved",
+        "asphalt",
+        "concrete",
+        "concrete:lanes",
+        "concrete:plates",
+        "paving_stones",
+        "sett",
+        "unhewn_cobblestone",
+        "cobblestone"
+    ]
+}
+
+pub fn reject_surface() -> Vec<&'static str> {
     vec![
         "dirt",
         "earth",
@@ -59,33 +78,23 @@ pub fn default_surface() -> Vec<&'static str> {
 }
 
 fn filter(feat: &Network) -> bool {
-    match feat.props.get("highway") {
-        Some(highway) => {
-            let highway = highway.as_str().unwrap();
-
-            let accepted = default_highway();
-
-            if !accepted.contains(&highway) {
-                return true;
-            }
-        },
-        None => {
-            return true;
-        }
+    let highway = match feat.props.get("highway") {
+        Some(highway) => highway.as_str().unwrap(),
+        None => { return true; }
     };
 
-    match feat.props.get("surface") {
-        Some(surface) => {
-            let surface = surface.as_str().unwrap();
-
-            let reject = default_surface();
-
-            if reject.contains(&surface) {
-                return true;
-            }
-        },
-        None => ()
+    let surface = match feat.props.get("surface") {
+        Some(surface) => surface.as_str().unwrap(),
+        None => ""
     };
+
+    if reject_surface().contains(&surface) {
+        return true;
+    } else if conditional_highway().contains(&highway) && !pref_surface().contains(&surface) {
+        return true;
+    } else if !default_highway().contains(&highway) && !conditional_highway().contains(&highway) {
+        return true;
+    }
 
     false
 }

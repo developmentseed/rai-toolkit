@@ -31,6 +31,7 @@ curl $URL > /tmp/$CC.osm.pbf
 osmium export \
     --output-format geojsonseq \
     /tmp/$CC.osm.pbf \
+    | jq -rc '.properties.source = "osm"' \
     > /tmp/${CC}_unfiltered.geojsonld
 
 cargo run -- filter \

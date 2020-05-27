@@ -1,5 +1,11 @@
+use crate::list::list;
+
 pub fn main(pool: r2d2::Pool<r2d2_postgres::PostgresConnectionManager<postgres::NoTls>>, args: &clap_v3::ArgMatches) {
     let iso = args.value_of("iso").unwrap().to_string().to_lowercase();
+
+    if !list(pool.clone()).contains(&iso) {
+        panic!("{} is not currently loaded", &iso);
+    }
 
     pool.get().unwrap().execute(format!("
         DROP SCHEMA country_{} CASCADE;

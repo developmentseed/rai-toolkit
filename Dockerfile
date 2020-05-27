@@ -15,6 +15,7 @@ RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs 0.43 | sh -s -- -y
 
 ENV PATH="$HOME/.cargo/bin:${PATH}"
 
-RUN cargo build --release
+RUN cargo build --release \
+    && cp ${HOME}/toolkit/target/release/rai-toolkit /usr/bin/
 
 CMD tail -f /dev/null

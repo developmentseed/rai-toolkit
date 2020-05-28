@@ -1,5 +1,6 @@
 FROM ubuntu:20.04
 
+EXPOSE 4001
 ENV HOME=/home/rai
 COPY ./ $HOME/toolkit
 WORKDIR $HOME/toolkit

@@ -128,6 +128,17 @@ list        List countries that are currently loaded
 viz         Once a country is calc, open a webserver to visualize the output
 ```
 
+### Conflate
+
+Accept two street networks and conflate them together based on street name and geographic proximity. The output
+of this mode is a single conflated line-delimited geojson file which can subsequently be used by the `calc` module.
+
+**Example**
+
+```sh
+rai-toolkit conflate py.geojsonld py_new.geojsonld --iso py --langs es --output output.geojson
+```
+
 ### Filter
 
 The filter mode accepts a line-delimited GeoJSON representation of an OSM PBF file. The GeoJSON will initially
@@ -135,3 +146,9 @@ contain all of the OSM features in a given geographic area. The filter mode will
 road segments that are explicitly, or have a high probability of being all-season roads.
 
 Generally this mode will not be used directly, but instead will be called automatically from the cache-osm utility.
+
+**Example**
+
+```sh
+rai-toolkit filter raw_osm.geojsonld > filtered.geojsonld
+```

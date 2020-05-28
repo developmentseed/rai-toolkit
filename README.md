@@ -130,7 +130,7 @@ viz         Once a country is calc, open a webserver to visualize the output
 
 Note: further help can always be obtained about a given subcommand by using the `--help` flag on a subcommand
 
-**Example**
+*Example*
 
 ```sh
 rai-toolkit conflate --help
@@ -141,7 +141,7 @@ rai-toolkit conflate --help
 Accept two street networks and conflate them together based on street name and geographic proximity. The output
 of this mode is a single conflated line-delimited geojson file which can subsequently be used by the `calc` module.
 
-**Example**
+*Example*
 
 ```sh
 rai-toolkit conflate py.geojsonld py_new.geojsonld --iso py --langs es --output output.geojson
@@ -155,7 +155,7 @@ road segments that are explicitly, or have a high probability of being all-seaso
 
 Generally this mode will not be used directly, but instead will be called automatically from the cache-osm utility.
 
-**Example**
+*Example*
 
 ```sh
 rai-toolkit filter raw_osm.geojsonld > filtered.geojsonld
@@ -168,7 +168,7 @@ This module performs the RAI calculation itself based on a given all weather roa
 The module will output a covered & uncovered population metric based on how much of the population is within
 2km of an all-season road.
 
-**Example**
+*Example*
 
 ```sh
 rai-toolkit calc py.geojsonld --iso py
@@ -183,7 +183,7 @@ the road network and buffering calculations that were used to generate the RAI m
 
 This command can only be used on a country that has already been loaded via the `calc` module.
 
-**Example**
+*Example*
 
 ```sh
 rai-toolkit viz --iso py

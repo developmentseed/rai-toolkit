@@ -128,4 +128,10 @@ list        List countries that are currently loaded
 viz         Once a country is calc, open a webserver to visualize the output
 ```
 
+### Filter
 
+The filter mode accepts a line-delimited GeoJSON representation of an OSM PBF file. The GeoJSON will initially
+contain all of the OSM features in a given geographic area. The filter mode will take this file and extract all
+road segments that are explicitly, or have a high probability of being all-season roads.
+
+Generally this mode will not be used directly, but instead will be called automatically from the cache-osm utility.

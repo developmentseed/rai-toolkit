@@ -128,6 +128,14 @@ list        List countries that are currently loaded
 viz         Once a country is calc, open a webserver to visualize the output
 ```
 
+Note: further help can always be obtained about a given subcommand by using the `--help` flag on a subcommand
+
+**Example**
+
+```sh
+rai-toolkit conflate --help
+```
+
 ### Conflate
 
 Accept two street networks and conflate them together based on street name and geographic proximity. The output
@@ -151,4 +159,32 @@ Generally this mode will not be used directly, but instead will be called automa
 
 ```sh
 rai-toolkit filter raw_osm.geojsonld > filtered.geojsonld
+```
+
+### Calc
+
+This module performs the RAI calculation itself based on a given all weather road network.
+
+The module will output a covered & uncovered population metric based on how much of the population is within
+2km of an all-season road.
+
+**Example**
+
+```sh
+rai-toolkit calc py.geojsonld --iso py
+```
+
+Note: A population dataset, such as NASA SEDAC, must be loaded before the `calc` module can be used. See Data Pre-Req if this has not been done.
+
+### Viz
+
+The viz module will enable a simple Mapbox Vector Tile server, and a basic browser based UI. This UI shows a basic overview of
+the road network and buffering calculations that were used to generate the RAI metric.
+
+This command can only be used on a country that has already been loaded via the `calc` module.
+
+**Example**
+
+```sh
+rai-toolkit viz --iso py
 ```

@@ -92,12 +92,11 @@ The following will be returned:
 
 ```
 calc        Calculate RAI
-conflate    controls testing features
+conflate    Conflate two street networks together
 drop        Drop a loaded country from the database
 filter      Filter OSM data to only include linestrings/highways
 help        Prints this message or the help of the given subcommand(s)
 list        List countries that are currently loaded
 viz         Once a country is calc, open a webserver to visualize the output
 ```
-
 

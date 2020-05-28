@@ -42,7 +42,7 @@ subcommands:
                 required: true
 
     - conflate:
-        about: controls testing features
+        about: Conflate two street networks together
         args:
             - MASTER:
                 help: The base geospatial road network

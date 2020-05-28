@@ -80,6 +80,10 @@ This script will download and filter OSM data into a subset of all-weather roads
 Lower classifications of road (Residential/Unclassified) must have an explicit `surface=<paved,concrete,etc>` to be included as
 all weather roads. OSM data is constantly being improved and for our reviewed countries has a high degree of accuracy.
 
+If a country has not been configured for use with the RAI toolkit, an entry will need to be added to the
+`./util/cache-osm.conf` file. This file is simply a map of country codes to their corresponding OSM PBF extracts.
+Extracts can be found on the [Geofabrik](https://download.geofabrik.de/) extracts page
+
 ### Data Format
 
 If you are not using OSM data, or are conflating an additional dataset into OSM data, your data must be modified
@@ -123,4 +127,5 @@ help        Prints this message or the help of the given subcommand(s)
 list        List countries that are currently loaded
 viz         Once a country is calc, open a webserver to visualize the output
 ```
+
 

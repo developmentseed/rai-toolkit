@@ -17,6 +17,30 @@ Alternatively, if you have a local postgres/postgis installation and wish to run
 without the overhead of the docker system, you can compile the binaries manually, or
 download a prebuild binary from the [release](https://github.com/developmentseed/rai-toolkit/releases) page.
 
+Once the docker image has built, start the toolkit in the background with
+
+```sh
+docker run rai --name rai
+```
+
+Finally, in another tab, an interactive rai shell can be access by running:
+
+```sh
+docker exec -it rai bash
+```
+
+To verify the toolkit was installed properly in the shell, run:
+
+```sh
+rai-toolkit --help
+```
+
+The database can also be access directly in the shell via:
+
+```
+psql -U postgres rai
+```
+
 ## Data Pre-Req
 
 The RAI toolkit is a self contained RAI calculator, and can perform an RAI calculation without any custom data.

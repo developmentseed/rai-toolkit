@@ -80,10 +80,24 @@ The GeoJSON must then have the following properties:
 | `highway` | Optional: If present, will filter input as OSM data |
 | `surface` | Type of surface. Surfaces listed [here](https://wiki.openstreetmap.org/wiki/Key:surface) are supported.
 
+## Toolkit Modes
 
+The toolkit has several modules, these modules can always be listed via
 
+```sh
+rai-toolkit --help
+```
 
+The following will be returned:
 
-
+```
+calc        Calculate RAI
+conflate    controls testing features
+drop        Drop a loaded country from the database
+filter      Filter OSM data to only include linestrings/highways
+help        Prints this message or the help of the given subcommand(s)
+list        List countries that are currently loaded
+viz         Once a country is calc, open a webserver to visualize the output
+```
 
 

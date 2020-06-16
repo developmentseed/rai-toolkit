@@ -1,6 +1,6 @@
-use crate::pg::{Table, InputTable, Network, Country};
+use crate::pg::{Table, InputTable, Network, Country, Polygon};
 use indicatif::ProgressBar;
-use crate::stream::{GeoStream, NetStream};
+use crate::stream::{GeoStream, NetStream, PolyStream};
 use rayon::prelude::*;
 use std::thread;
 
@@ -22,12 +22,24 @@ pub fn main(pool: r2d2::Pool<r2d2_postgres::PostgresConnectionManager<postgres::
     let country = Country::new(format!("country_{}.country", &iso));
     println!("ok - formatted database");
 
-    match args.value_of("bounds") {
-        Some(bounds) => {
-            println!("BOUNDS")
-        },
-        None => ()
-    };
+    {
+        let mut db = pool.get().unwrap();
+        let poly = Polygon::new(format!("country_{}.bounds", &iso));
+        poly.create(&mut db);
+
+        match args.value_of("bounds") {
+            Some(bounds) => {
+                println!("ok - importing bounds file");
+
+                poly.input(&mut db, PolyStream::new(
+                    GeoStream::new(Some(bounds.to_string())),
+                    Some(String::from("/tmp/master_error.log")))
+                );
+                poly.index(&mut db);
+            },
+            None => ()
+        };
+    }
 
     let mut manager = Vec::with_capacity(2);
     {

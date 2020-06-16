@@ -7,6 +7,8 @@ use serde_json::Value;
 pub mod network;
 pub mod country;
 pub mod stream;
+pub mod polygon;
+pub use self::polygon::Polygon;
 pub use self::network::Network;
 pub use self::country::Country;
 

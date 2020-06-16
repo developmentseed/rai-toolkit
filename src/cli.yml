@@ -81,6 +81,12 @@ subcommands:
                 help: Specify the ISO 3166-alpha2 code of the country for the calculation
                 takes_value: true
                 required: true
+            - bounds:
+                long: bounds
+                value_name: BOUNDS
+                help: Specify a file of line-delimited GeoJSON polygons to calculate RAI within
+                takes_value: true
+                required: false
             - NETWORK:
                 help: The base geospatial road network
                 required: true

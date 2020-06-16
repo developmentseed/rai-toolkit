@@ -22,6 +22,13 @@ pub fn main(pool: r2d2::Pool<r2d2_postgres::PostgresConnectionManager<postgres::
     let country = Country::new(format!("country_{}.country", &iso));
     println!("ok - formatted database");
 
+    match args.value_of("bounds") {
+        Some(bounds) => {
+            println!("BOUNDS")
+        },
+        None => ()
+    };
+
     let mut manager = Vec::with_capacity(2);
     {
         let mut db = pool.get().unwrap();

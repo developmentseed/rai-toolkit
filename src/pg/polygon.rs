@@ -37,6 +37,28 @@ impl Table for Polygon {
         "#, &self.name).as_str(), &[]).unwrap();
     }
 
+    fn max(&self, db: &mut Client) -> Option<i64> {
+        let max: Option<i64> = match db.query(format!("
+            SELECT
+                MAX(id)
+            FROM
+                {}
+        ", &self.name).as_str(), &[]) {
+            Err(err) => panic!("{}", err),
+            Ok(res) => res.get(0).unwrap().get(0)
+        };
+
+        max
+    }
+
+    fn name(&self) -> &String {
+        &self.name
+    }
+
+    fn props(&self, _db: &mut Client, _id: i64) -> serde_json::Map<String, serde_json::Value> {
+        serde_json::Map::new()
+    }
+
     fn count(&self, conn: &mut Client) -> i64 {
         match conn.query(format!(r#"
             SELECT count(*) FROM {}
@@ -62,7 +84,7 @@ impl Table for Polygon {
 
 impl InputTable for Polygon {
     fn input(&self, conn: &mut Client, mut data: impl Read) {
-        let stmt = conn.prepare(format!(r#"
+        let mut stmt = conn.copy_in(format!(r#"
             COPY {} (
                 props,
                 geom
@@ -76,7 +98,8 @@ impl InputTable for Polygon {
             )
         "#, &self.name).as_str()).unwrap();
 
-        stmt.copy_in(&[], &mut data).unwrap();
+        std::io::copy(&mut data, &mut stmt).unwrap();
+        stmt.finish().unwrap();
 
         conn.execute(format!(r#"
             UPDATE {name}

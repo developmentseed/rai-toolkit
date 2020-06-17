@@ -36,7 +36,7 @@ pub fn main(pool: r2d2::Pool<r2d2_postgres::PostgresConnectionManager<postgres::
             );
             poly.index(&mut db);
 
-            println!("ok - imported {} bounds", poly.count());
+            println!("ok - imported {} bounds", poly.count(&mut db));
         },
         None => ()
     };
@@ -239,7 +239,7 @@ pub fn main(pool: r2d2::Pool<r2d2_postgres::PostgresConnectionManager<postgres::
     println!("Covered: {}", covered);
     println!("Uncovered: {}", uncovered);
 
-    if poly.count() > 0 {
+    if poly.count(&mut db) > 0 {
         let covered: f64 = match db.query(format!("
             SELECT
                 country_{iso}.name,

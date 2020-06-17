@@ -31,6 +31,7 @@ impl Table for Polygon {
         conn.execute(format!(r#"
             CREATE UNLOGGED TABLE {} (
                 id BIGINT,
+                name TEXT,
                 props JSONB,
                 geom GEOMETRY(MultiPolygon, 4326)
             )
@@ -109,7 +110,9 @@ impl InputTable for Polygon {
 
         conn.execute(format!(r#"
             UPDATE {name}
-                SET geom = ST_CollectionExtract(ST_MakeValid(geom), 3)
+                SET
+                    geom = ST_CollectionExtract(ST_MakeValid(geom), 3),
+                    name = COALESCE(props->>'name', '')
         "#, name = &self.name).as_str(), &[]).unwrap();
     }
 }

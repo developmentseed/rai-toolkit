@@ -22,24 +22,24 @@ pub fn main(pool: r2d2::Pool<r2d2_postgres::PostgresConnectionManager<postgres::
     let country = Country::new(format!("country_{}.country", &iso));
     println!("ok - formatted database");
 
-    {
-        let mut db = pool.get().unwrap();
-        let poly = Polygon::new(format!("country_{}.bounds", &iso));
-        poly.create(&mut db);
+    let poly = Polygon::new(format!("country_{}.bounds", &iso));
+    let mut db = pool.get().unwrap();
+    poly.create(&mut db);
 
-        match args.value_of("bounds") {
-            Some(bounds) => {
-                println!("ok - importing bounds file");
+    match args.value_of("bounds") {
+        Some(bounds) => {
+            println!("ok - importing bounds file");
 
-                poly.input(&mut db, PolyStream::new(
-                    GeoStream::new(Some(bounds.to_string())),
-                    Some(String::from("/tmp/master_error.log")))
-                );
-                poly.index(&mut db);
-            },
-            None => ()
-        };
-    }
+            poly.input(&mut db, PolyStream::new(
+                GeoStream::new(Some(bounds.to_string())),
+                Some(String::from("/tmp/master_error.log")))
+            );
+            poly.index(&mut db);
+
+            println!("ok - imported {} bounds", poly.count());
+        },
+        None => ()
+    };
 
     let mut manager = Vec::with_capacity(2);
     {
@@ -235,6 +235,23 @@ pub fn main(pool: r2d2::Pool<r2d2_postgres::PostgresConnectionManager<postgres::
         Ok(res) => res.get(0).unwrap().get(0)
     };
 
+    println!("Country:");
     println!("Covered: {}", covered);
     println!("Uncovered: {}", uncovered);
+
+    if poly.count() > 0 {
+        let covered: f64 = match db.query(format!("
+            SELECT
+                country_{iso}.name,
+                SUM(pop * coverage * 0.01)
+            FROM
+                country_{iso}.{iso}_geom,
+                country_{iso}.bounds
+            WHERE
+                ST_Intersects(country_{iso}.geom, ountry_{iso}.{iso}_geom.geom)
+        ", iso = &iso).as_str(), &[]) {
+            Err(err) => panic!("{}", err),
+            Ok(res) => res.get(0).unwrap().get(0)
+        };
+    }
 }

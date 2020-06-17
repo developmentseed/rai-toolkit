@@ -73,12 +73,18 @@ impl Table for Polygon {
 
     fn index(&self, conn: &mut Client) {
         conn.execute(format!(r#"
-            CREATE INDEX {name}_idx ON {name} (id);
-        "#, name = &self.name).as_str(), &[]).unwrap();
+            CREATE INDEX {}_idx ON {} (id);
+        "#,
+            &self.name.replace(".", "_"),
+            name = &self.name
+        ).as_str(), &[]).unwrap();
 
         conn.execute(format!(r#"
-            CREATE INDEX {name}_gix ON {name} USING GIST (geom);
-        "#, name = &self.name).as_str(), &[]).unwrap();
+            CREATE INDEX {}_gix ON {} USING GIST (geom);
+        "#,
+            &self.name.replace(".", "_"),
+            name = &self.name
+        ).as_str(), &[]).unwrap();
     }
 }
 

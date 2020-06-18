@@ -235,7 +235,6 @@ pub fn main(pool: r2d2::Pool<r2d2_postgres::PostgresConnectionManager<postgres::
 
     let covered: f64 = match db.query(format!("
         SELECT
-            SUM(pop * coverage * 0.01)
         FROM
             country_{iso}.{iso}_geom
     ", iso = &iso).as_str(), &[]) {
@@ -243,14 +242,18 @@ pub fn main(pool: r2d2::Pool<r2d2_postgres::PostgresConnectionManager<postgres::
         Ok(res) => res.get(0).unwrap().get(0)
     };
 
-    let uncovered: f64 = match db.query(format!("
+    let (covered, uncovered): (f64, f64) = match db.query(format!("
         SELECT
+            SUM(pop * coverage * 0.01)
             SUM(pop) - SUM(pop * coverage * 0.01)
         FROM
             country_{iso}.{iso}_geom
     ", iso = &iso).as_str(), &[]) {
         Err(err) => panic!("{}", err),
-        Ok(res) => res.get(0).unwrap().get(0)
+        Ok(res) => {
+            let row = res.get(0).unwrap();
+            (row.get(0), row.get(1))
+        }
     };
 
     println!("Country:");
@@ -258,18 +261,31 @@ pub fn main(pool: r2d2::Pool<r2d2_postgres::PostgresConnectionManager<postgres::
     println!("Uncovered: {}", uncovered);
 
     if poly.count(&mut db) > 0 {
-        let covered: f64 = match db.query(format!("
+        match db.query(format!("
             SELECT
-                country_{iso}.name,
-                SUM(pop * coverage * 0.01)
+                bounds.name,
+                SUM(pop * coverage * 0.01),
+                SUM(country.pop * country.coverage * 0.01)
             FROM
-                country_{iso}.{iso}_geom,
-                country_{iso}.bounds
+                country_{iso}.{iso}_geom AS country,
+                country_{iso}.bounds AS bounds
             WHERE
-                ST_Intersects(country_{iso}.geom, ountry_{iso}.{iso}_geom.geom)
+                ST_Intersects(bounds.geom, country.geom)
+                AND name != ''
+            GROUP BY
+                bounds.name
         ", iso = &iso).as_str(), &[]) {
             Err(err) => panic!("{}", err),
-            Ok(res) => res.get(0).unwrap().get(0)
+            Ok(res) => {
+                for row in res {
+                    let name: String = row.get(0);
+                    println!("{}:", name);
+                    let covered: f64 = row.get(1);
+                    println!("Covered: {}", covered);
+                    let uncovered: f64 = row.get(2);
+                    println!("Uncovered: {}", uncovered);
+                }
+            }
         };
     }
 }

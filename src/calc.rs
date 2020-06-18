@@ -36,21 +36,21 @@ pub fn main(pool: r2d2::Pool<r2d2_postgres::PostgresConnectionManager<postgres::
             );
             poly.index(&mut db);
 
-            match db.query("
+            match db.query(format!("
                 SELECT
                     count(*)
                 FROM
-                    bounds
+                    country_{}.bounds
                 WHERE
                     name = ''
-            ", &[]) {
+            ", &iso).as_str(), &[]) {
                 Ok(res) => {
                     let count = poly.count(&mut db);
-                    let named: i64 = res.get(0).unwrap().get(0);
-                    println!("ok - imported {}/{} bounds", named, count);
+                    let unnamed: i64 = res.get(0).unwrap().get(0);
+                    println!("ok - imported {}/{} bounds", count - unnamed, count);
 
-                    if count > 0 && named == 0 {
-                        panic!("Bounds features must have 'name' property to be included");
+                    if count > 0 && count - unnamed == 0 {
+                        panic!("not ok - bounds features must have 'name' property to be included");
                     }
                 },
                 _ => panic!("Bounds integretiy check failed")

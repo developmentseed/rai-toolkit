@@ -174,7 +174,8 @@ The module will output a covered & uncovered population metric based on how much
 rai-toolkit calc \
     py.geojsonld \
     --iso py \
-    --bounds py_admin.geojsonld
+    --bounds py_admin.geojsonld \
+    --output results.csv
 ```
 
 Note: A population dataset, such as NASA SEDAC, must be loaded before the `calc` module can be used. See Data Pre-Req if this has not been done.

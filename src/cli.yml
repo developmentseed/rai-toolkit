@@ -87,6 +87,13 @@ subcommands:
                 help: Specify a file of line-delimited GeoJSON polygons to calculate RAI within
                 takes_value: true
                 required: false
+            - output:
+                long: output
+                short: o
+                value_name: OUTPUT
+                help: Output file to write RAI calculations to
+                takes_value: true
+                required: true
             - NETWORK:
                 help: The base geospatial road network
                 required: true

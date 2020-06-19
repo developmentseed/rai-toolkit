@@ -233,18 +233,9 @@ pub fn main(pool: r2d2::Pool<r2d2_postgres::PostgresConnectionManager<postgres::
 
     println!("\nok - done calculating coverage geometry");
 
-    let covered: f64 = match db.query(format!("
-        SELECT
-        FROM
-            country_{iso}.{iso}_geom
-    ", iso = &iso).as_str(), &[]) {
-        Err(err) => panic!("{}", err),
-        Ok(res) => res.get(0).unwrap().get(0)
-    };
-
     let (covered, uncovered): (f64, f64) = match db.query(format!("
         SELECT
-            SUM(pop * coverage * 0.01)
+            SUM(pop * coverage * 0.01),
             SUM(pop) - SUM(pop * coverage * 0.01)
         FROM
             country_{iso}.{iso}_geom

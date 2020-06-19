@@ -91,7 +91,7 @@ subcommands:
                 long: output
                 short: o
                 value_name: OUTPUT
-                help: Output file to write to
+                help: Output file to write RAI calculations to
                 takes_value: true
                 required: true
             - NETWORK:

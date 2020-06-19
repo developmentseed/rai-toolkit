@@ -10,6 +10,7 @@ pub fn main(pool: r2d2::Pool<r2d2_postgres::PostgresConnectionManager<postgres::
     println!("ok - processing {}", &iso);
 
     let master_src = args.value_of("NETWORK").unwrap().to_string();
+    let output = args.value_of("output").unwrap().to_string();
 
     let mut db = pool.get().unwrap();
 
@@ -247,9 +248,10 @@ pub fn main(pool: r2d2::Pool<r2d2_postgres::PostgresConnectionManager<postgres::
         }
     };
 
-    println!("Country:");
-    println!("Covered: {}", covered);
-    println!("Uncovered: {}", uncovered);
+    let mut wtr = csv::Writer::from_path(output).unwrap();
+
+    wtr.write_record(&["name", "covered population", "uncovered population"]).unwrap();
+    wtr.write_record(&["country", &*covered.to_string(), &*uncovered.to_string()]).unwrap();
 
     if poly.count(&mut db) > 0 {
         match db.query(format!("
@@ -270,11 +272,9 @@ pub fn main(pool: r2d2::Pool<r2d2_postgres::PostgresConnectionManager<postgres::
             Ok(res) => {
                 for row in res {
                     let name: String = row.get(0);
-                    println!("{}:", name);
                     let covered: f64 = row.get(1);
-                    println!("Covered: {}", covered);
                     let uncovered: f64 = row.get(2);
-                    println!("Uncovered: {}", uncovered);
+                    wtr.write_record(&[name, covered.to_string(), uncovered.to_string()]).unwrap();
                 }
             }
         };

@@ -5,6 +5,7 @@ authors = ["ingalls <nick@ingalls.ca>"]
 edition = "2018"
 
 [dependencies]
+csv = "1.1"
 regex = "1.1"
 fancy-regex = "0.1"
 memchr = "2.0.2"

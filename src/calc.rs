@@ -1,6 +1,6 @@
-use crate::pg::{Table, InputTable, Network, Country};
+use crate::pg::{Table, InputTable, Network, Country, Polygon};
 use indicatif::ProgressBar;
-use crate::stream::{GeoStream, NetStream};
+use crate::stream::{GeoStream, NetStream, PolyStream};
 use rayon::prelude::*;
 use std::thread;
 
@@ -21,6 +21,43 @@ pub fn main(pool: r2d2::Pool<r2d2_postgres::PostgresConnectionManager<postgres::
     let master = Network::new(format!("country_{}.master", &iso));
     let country = Country::new(format!("country_{}.country", &iso));
     println!("ok - formatted database");
+
+    let poly = Polygon::new(format!("country_{}.bounds", &iso));
+    let mut db = pool.get().unwrap();
+    poly.create(&mut db);
+
+    match args.value_of("bounds") {
+        Some(bounds) => {
+            println!("ok - importing bounds file");
+
+            poly.input(&mut db, PolyStream::new(
+                GeoStream::new(Some(bounds.to_string())),
+                Some(String::from("/tmp/master_error.log")))
+            );
+            poly.index(&mut db);
+
+            match db.query(format!("
+                SELECT
+                    count(*)
+                FROM
+                    country_{}.bounds
+                WHERE
+                    name = ''
+            ", &iso).as_str(), &[]) {
+                Ok(res) => {
+                    let count = poly.count(&mut db);
+                    let unnamed: i64 = res.get(0).unwrap().get(0);
+                    println!("ok - imported {}/{} bounds", count - unnamed, count);
+
+                    if count > 0 && count - unnamed == 0 {
+                        panic!("not ok - bounds features must have 'name' property to be included");
+                    }
+                },
+                _ => panic!("Bounds integretiy check failed")
+            };
+        },
+        None => ()
+    };
 
     let mut manager = Vec::with_capacity(2);
     {
@@ -196,26 +233,50 @@ pub fn main(pool: r2d2::Pool<r2d2_postgres::PostgresConnectionManager<postgres::
 
     println!("\nok - done calculating coverage geometry");
 
-    let covered: f64 = match db.query(format!("
+    let (covered, uncovered): (f64, f64) = match db.query(format!("
         SELECT
-            SUM(pop * coverage * 0.01)
-        FROM
-            country_{iso}.{iso}_geom
-    ", iso = &iso).as_str(), &[]) {
-        Err(err) => panic!("{}", err),
-        Ok(res) => res.get(0).unwrap().get(0)
-    };
-
-    let uncovered: f64 = match db.query(format!("
-        SELECT
+            SUM(pop * coverage * 0.01),
             SUM(pop) - SUM(pop * coverage * 0.01)
         FROM
             country_{iso}.{iso}_geom
     ", iso = &iso).as_str(), &[]) {
         Err(err) => panic!("{}", err),
-        Ok(res) => res.get(0).unwrap().get(0)
+        Ok(res) => {
+            let row = res.get(0).unwrap();
+            (row.get(0), row.get(1))
+        }
     };
 
+    println!("Country:");
     println!("Covered: {}", covered);
     println!("Uncovered: {}", uncovered);
+
+    if poly.count(&mut db) > 0 {
+        match db.query(format!("
+            SELECT
+                bounds.name,
+                SUM(pop * coverage * 0.01),
+                SUM(pop) - SUM(pop * coverage * 0.01)
+            FROM
+                country_{iso}.{iso}_geom AS country,
+                country_{iso}.bounds AS bounds
+            WHERE
+                ST_Intersects(bounds.geom, country.geom)
+                AND name != ''
+            GROUP BY
+                bounds.name
+        ", iso = &iso).as_str(), &[]) {
+            Err(err) => panic!("{}", err),
+            Ok(res) => {
+                for row in res {
+                    let name: String = row.get(0);
+                    println!("{}:", name);
+                    let covered: f64 = row.get(1);
+                    println!("Covered: {}", covered);
+                    let uncovered: f64 = row.get(2);
+                    println!("Uncovered: {}", uncovered);
+                }
+            }
+        };
+    }
 }

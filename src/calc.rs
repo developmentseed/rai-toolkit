@@ -256,7 +256,7 @@ pub fn main(pool: r2d2::Pool<r2d2_postgres::PostgresConnectionManager<postgres::
             SELECT
                 bounds.name,
                 SUM(pop * coverage * 0.01),
-                SUM(country.pop * country.coverage * 0.01)
+                SUM(pop) - SUM(pop * coverage * 0.01)
             FROM
                 country_{iso}.{iso}_geom AS country,
                 country_{iso}.bounds AS bounds

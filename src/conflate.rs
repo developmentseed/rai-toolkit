@@ -35,6 +35,14 @@ pub fn main(pool: r2d2::Pool<r2d2_postgres::PostgresConnectionManager<postgres::
     let master_src = args.value_of("MASTER").unwrap().to_string();
     let new_src = args.value_of("NEW").unwrap().to_string();
 
+    let buffer: i64 = match args.value_of("BUFFER") {
+        None => 25,
+        Some(buffer) => match buffer.parse::<i64>() {
+            Ok(buffer) => buffer,
+            _ => panic!("--buffer value must be an integer")
+        }
+    };
+
     let master = Network::new("master");
     let new = Network::new("new");
 

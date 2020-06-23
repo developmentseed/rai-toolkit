@@ -20,7 +20,7 @@ RUN apt-get update \
     && curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs 0.43 | sh -s -- -y
 
 RUN mkdir ./mason \
-    && curl -sSfL https://github.com/mapbox/mason/archive/v0.22.0.tar.gz | tar -z --extract --strip-components=1 --exclude="*md" --exclude="test*" --directory=./mason
+    && curl -sSfL https://github.com/mapbox/mason/archive/v0.22.0.tar.gz | tar -z --extract --strip-components=1 --exclude="*md" --exclude="test*" --directory=./mason \
     && ./mason/mason install osmium-tool 1.12.0
 
 ENV PATH="$HOME/.cargo/bin:${PATH}"

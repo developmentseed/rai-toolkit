@@ -206,6 +206,14 @@ pub fn main(pool: r2d2::Pool<r2d2_postgres::PostgresConnectionManager<postgres::
                         });
                     }
 
+                    // The new road segment is too geometrically
+                    // smiliar to import
+                    if pnets.iter().any(|net| {
+                        net.cov > length * 0.75
+                    }) {
+                        return ();
+                    }
+
                     let primary = linker::Link::new(i, &names);
                     let potentials: Vec<linker::Link> = pnets.iter().map(|net| {
                         linker::Link::new(net.id, &net.names)

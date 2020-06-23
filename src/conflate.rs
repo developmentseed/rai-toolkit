@@ -11,11 +11,13 @@ pub struct DbSerial {
     id: i64,
     props: serde_json::Value,
     names: Vec<Name>,
-    geom: serde_json::Value
+    geom: serde_json::Value,
+    cov: f64
 }
 
 pub struct DbType {
     id: i64,
+    cov: f64,
     props: serde_json::Value,
     names: Names,
     geom: serde_json::Value
@@ -34,6 +36,14 @@ pub fn main(pool: r2d2::Pool<r2d2_postgres::PostgresConnectionManager<postgres::
 
     let master_src = args.value_of("MASTER").unwrap().to_string();
     let new_src = args.value_of("NEW").unwrap().to_string();
+
+    let buffer: i64 = match args.value_of("BUFFER") {
+        None => 25,
+        Some(buffer) => match buffer.parse::<i64>() {
+            Ok(buffer) => buffer,
+            _ => panic!("--buffer value must be an integer")
+        }
+    };
 
     let master = Network::new("master");
     let new = Network::new("new");
@@ -87,17 +97,22 @@ pub fn main(pool: r2d2::Pool<r2d2_postgres::PostgresConnectionManager<postgres::
     (1..=new_max).into_par_iter().for_each(|i| {
         let mut db = pool.get().unwrap();
 
-        match db.query("
+        match db.query(format!("
             SELECT
                 new.props,
                 new.name,
                 ST_AsGeoJSON(new.geom)::JSON AS geom,
+                ST_Length(new.geom) AS length,
                 Array_To_Json((Array_Agg(
                     JSON_Build_Object(
                         'id', master.id,
                         'props', master.props,
                         'names', master.name,
-                        'geom', master.geom
+                        'geom', master.geom,
+                        'cov', ST_Length(ST_Intersection(
+                            ST_Buffer(new.geom::GEOGRAPHY, {buffer})::GEOMETRY,
+                            master.geom
+                        ))
                     )
                     ORDER BY ST_Distance(master.geom, new.geom)
                 ))[:10]) AS nets
@@ -112,12 +127,16 @@ pub fn main(pool: r2d2::Pool<r2d2_postgres::PostgresConnectionManager<postgres::
                 new.name,
                 new.props,
                 new.geom
-        ", &[&i]) {
+        ",
+            buffer = &buffer
+        ).as_str(), &[&i]) {
             Err(err) => panic!("{}", err.to_string()),
             Ok(rows) => {
                 let row = match rows.get(0) {
                     Some(row) => row,
                     None => {
+                        // Inner join failed to return any results - meaning new item
+                        // does not have existing roads near it
                         db.execute("
                             INSERT INTO master (
                                 name,
@@ -147,7 +166,8 @@ pub fn main(pool: r2d2::Pool<r2d2_postgres::PostgresConnectionManager<postgres::
                 let names = Names { names: names };
 
                 let _geom: serde_json::Value = row.get(2);
-                let nets: Option<serde_json::Value> = row.get(3);
+                let length: f64 = row.get(3);
+                let nets: Option<serde_json::Value> = row.get(4);
 
                 if nets.is_none() || !props.contains_key("name") || props.get("name").unwrap().is_null() {
                     // For now, roads without names are automatically inserted into final db
@@ -179,10 +199,19 @@ pub fn main(pool: r2d2::Pool<r2d2_postgres::PostgresConnectionManager<postgres::
                             id: net.id,
                             geom: net.geom,
                             props: net.props,
+                            cov: net.cov,
                             names: Names {
                                 names: net.names
                             }
                         });
+                    }
+
+                    // The new road segment is too geometrically
+                    // smiliar to import
+                    if pnets.iter().any(|net| {
+                        net.cov > length * 0.75
+                    }) {
+                        return ();
                     }
 
                     let primary = linker::Link::new(i, &names);

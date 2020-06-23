@@ -11,7 +11,7 @@ RUN apt-get update \
     && apt-get install -y tzdata \
     && dpkg-reconfigure --frontend noninteractive tzdata \
     && apt-get install -y curl build-essential postgresql postgresql-postgis libssl-dev pkg-config \
-    && apt-get install -y gdal-bin \
+    && apt-get install -y gdal-bin jq \
     && echo "local   all     all     trust" > /etc/postgresql/12/main/pg_hba.conf \
     && echo "host    all     all     localhost       trust" >> /etc/postgresql/12/main/pg_hba.conf \
     && echo "host    all     all     127.0.0.1/32    trust" >> /etc/postgresql/12/main/pg_hba.conf \

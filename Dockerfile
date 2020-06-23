@@ -10,14 +10,20 @@ RUN apt-get update \
     && ln -fs /usr/share/zoneinfo/America/New_York /etc/localtime \
     && apt-get install -y tzdata \
     && dpkg-reconfigure --frontend noninteractive tzdata \
-    && apt-get install -y curl build-essential postgresql postgresql-postgis libssl-dev pkg-config \
-    && apt-get install -y gdal-bin \
+    && apt-get install -y curl build-essential postgresql postgresql-postgis postgis libssl-dev pkg-config \
+    && apt-get install -y gdal-bin jq \
     && echo "local   all     all     trust" > /etc/postgresql/12/main/pg_hba.conf \
     && echo "host    all     all     localhost       trust" >> /etc/postgresql/12/main/pg_hba.conf \
     && echo "host    all     all     127.0.0.1/32    trust" >> /etc/postgresql/12/main/pg_hba.conf \
     && echo "host    all     all     ::1/128         trust" >> /etc/postgresql/12/main/pg_hba.conf \
     && echo "host    all     all     0.0.0.0/0       trust" >> /etc/postgresql/12/main/pg_hba.conf \
     && curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs 0.43 | sh -s -- -y
+
+RUN cd ${HOME} \
+    && mkdir ./mason \
+    && curl -sSfL https://github.com/mapbox/mason/archive/v0.22.0.tar.gz | tar -z --extract --strip-components=1 --exclude="*md" --exclude="test*" --directory="./mason/" \
+    && ./mason/mason install osmium-tool 1.12.0 \
+    && cp mason_packages/linux-x86_64/osmium-tool/1.12.0/bin/osmium /usr/bin/
 
 ENV PATH="$HOME/.cargo/bin:${PATH}"
 

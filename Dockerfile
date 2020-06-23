@@ -10,7 +10,7 @@ RUN apt-get update \
     && ln -fs /usr/share/zoneinfo/America/New_York /etc/localtime \
     && apt-get install -y tzdata \
     && dpkg-reconfigure --frontend noninteractive tzdata \
-    && apt-get install -y curl build-essential postgresql postgresql-postgis libssl-dev pkg-config \
+    && apt-get install -y curl build-essential postgresql postgresql-postgis postgis libssl-dev pkg-config \
     && apt-get install -y gdal-bin jq \
     && echo "local   all     all     trust" > /etc/postgresql/12/main/pg_hba.conf \
     && echo "host    all     all     localhost       trust" >> /etc/postgresql/12/main/pg_hba.conf \

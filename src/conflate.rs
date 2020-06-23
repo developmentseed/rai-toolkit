@@ -11,11 +11,13 @@ pub struct DbSerial {
     id: i64,
     props: serde_json::Value,
     names: Vec<Name>,
-    geom: serde_json::Value
+    geom: serde_json::Value,
+    cov: f64
 }
 
 pub struct DbType {
     id: i64,
+    cov: f64,
     props: serde_json::Value,
     names: Names,
     geom: serde_json::Value
@@ -100,12 +102,17 @@ pub fn main(pool: r2d2::Pool<r2d2_postgres::PostgresConnectionManager<postgres::
                 new.props,
                 new.name,
                 ST_AsGeoJSON(new.geom)::JSON AS geom,
+                ST_Length(new.geom) AS length,
                 Array_To_Json((Array_Agg(
                     JSON_Build_Object(
                         'id', master.id,
                         'props', master.props,
                         'names', master.name,
-                        'geom', master.geom
+                        'geom', master.geom,
+                        'cov', ST_Length(ST_Intersection(
+                            ST_Buffer(new.geom::GEOGRAPHY, {buffer})::GEOMETRY,
+                            master.geom
+                        ))
                     )
                     ORDER BY ST_Distance(master.geom, new.geom)
                 ))[:10]) AS nets
@@ -115,10 +122,6 @@ pub fn main(pool: r2d2::Pool<r2d2_postgres::PostgresConnectionManager<postgres::
                         ON ST_DWithin(master.geom, new.geom, 0.001)
             WHERE
                 new.id = $1
-                AND ST_Length(ST_Intersection(
-                    ST_Buffer(new.geom::GEOGRAPHY, {buffer})::GEOMETRY,
-                    master.geom
-                )) > ST_Length(new.geom) * 0.75
             GROUP BY
                 new.id,
                 new.name,
@@ -163,7 +166,8 @@ pub fn main(pool: r2d2::Pool<r2d2_postgres::PostgresConnectionManager<postgres::
                 let names = Names { names: names };
 
                 let _geom: serde_json::Value = row.get(2);
-                let nets: Option<serde_json::Value> = row.get(3);
+                let length: f64 = row.get(3);
+                let nets: Option<serde_json::Value> = row.get(4);
 
                 if nets.is_none() || !props.contains_key("name") || props.get("name").unwrap().is_null() {
                     // For now, roads without names are automatically inserted into final db
@@ -195,6 +199,7 @@ pub fn main(pool: r2d2::Pool<r2d2_postgres::PostgresConnectionManager<postgres::
                             id: net.id,
                             geom: net.geom,
                             props: net.props,
+                            cov: net.cov,
                             names: Names {
                                 names: net.names
                             }

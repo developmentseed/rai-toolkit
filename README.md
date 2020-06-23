@@ -20,7 +20,7 @@ download a prebuild binary from the [release](https://github.com/developmentseed
 Once the docker image has built, start the toolkit in the background with
 
 ```sh
-docker run rai --name rai
+docker run --name rai rai
 ```
 
 Finally, in another tab, an interactive rai shell can be access by running:
@@ -41,7 +41,7 @@ The database can also be access directly in the shell via:
 psql -U postgres rai
 ```
 
-## Data Pre-Req
+## Data prerequisite
 
 The RAI toolkit is a self contained RAI calculator, and can perform an RAI calculation without any custom data.
 By default it will use the [NASA SEDAC Product](https://sedac.ciesin.columbia.edu/) as well as street network data
@@ -50,41 +50,41 @@ proprietary dataset can be used, so long as it is provided in the desired format
 
 ### Population
 
-A raster population dataset is required to be loaded before any RAI calculations are performed. This project
-has scripts to format and load the [NASA SEDAC Product](https://sedac.ciesin.columbia.edu/)
+A raster population dataset is required to be loaded before any RAI calculations are performed. This project has scripts to format and load the NASA SEDAC Product. To download the global population grid:
 
-Download the global `.asc` files into a local directory. Then, if using docker, use `docker cp` to copy the files into the running docker
-container.
+- Visit the [data download page](https://sedac.ciesin.columbia.edu/data/set/gpw-v4-population-count-rev11/data-download)
+- Select the appropriate grid size
+- Download the zip file following the link
+- Unzip the archive
 
-Once the files are avaiable, run
+Then, if using docker, use `docker cp` to copy the files into the running docker container by running the following command your terminal:
 
 ```
-./util/cache-nasa <path-to-nasa-data>
+docker cp path-to-population-data-folder/ rai:/
 ```
 
-This script will create the necessary RAI database structure as well as format and load the SEDAC data. Note that this data is global
-so this initial import can take some time. This import is only necessary to do once. The toolkit will create mutable subsets of the data
-from the master import.
+Once the files are available, run:
+
+```
+./util/cache-nasa <path-to-nasa-data-folder>
+```
+
+This script will create the necessary RAI database structure as well as format and load the SEDAC data. Note that this data is global so this initial import can take some time. This import is only necessary to do once. The toolkit will create mutable subsets of the data from the master import.
 
 ### OpenStreetMap
+To work with a new country, it needs to be first configured by adding to `./utils/cache-osm.conf`. Open this file in a text editor and add the [ISO 3166-1 Alpha-2](https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2) and a link to [Geofabrik downloads](https://download.geofabrik.de/).
 
-To obtain the OpenStreetMap road network for a given country, run:
+Then, to download the OpenStreetMap road network for a given country, run:
 
 ```
 ./util/cache-osm <ISO 3166-1 Alpha-2 Code>
 ```
 
-Note: [ISO 3166-1 Alpha-2](https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2) codes lookup table
-
 This script will download and filter OSM data into a subset of all-weather roads. Primary/Secondary Highways are assumed to be paved.
 Lower classifications of road (Residential/Unclassified) must have an explicit `surface=<paved,concrete,etc>` to be included as
 all weather roads. OSM data is constantly being improved and for our reviewed countries has a high degree of accuracy.
 
-If a country has not been configured for use with the RAI toolkit, an entry will need to be added to the
-`./util/cache-osm.conf` file. This file is simply a map of country codes to their corresponding OSM PBF extracts.
-Extracts can be found on the [Geofabrik](https://download.geofabrik.de/) extracts page
-
-### Data Format
+### Custom road network shapefiles
 
 If you are not using OSM data, or are conflating an additional dataset into OSM data, your data must be modified
 to be Line-Delimited GeoJSON.

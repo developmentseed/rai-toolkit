@@ -95,7 +95,7 @@ pub fn main(pool: r2d2::Pool<r2d2_postgres::PostgresConnectionManager<postgres::
     (1..=new_max).into_par_iter().for_each(|i| {
         let mut db = pool.get().unwrap();
 
-        match db.query("
+        match db.query(format!("
             SELECT
                 new.props,
                 new.name,
@@ -115,17 +115,25 @@ pub fn main(pool: r2d2::Pool<r2d2_postgres::PostgresConnectionManager<postgres::
                         ON ST_DWithin(master.geom, new.geom, 0.001)
             WHERE
                 new.id = $1
+                AND ST_Length(ST_Intersection(
+                    ST_Buffer(new.geom::GEOGRAPHY, {buffer})::GEOMETRY,
+                    master.geom
+                )) > ST_Length(new.geom) * 0.75
             GROUP BY
                 new.id,
                 new.name,
                 new.props,
                 new.geom
-        ", &[&i]) {
+        ",
+            buffer = &buffer
+        ).as_str(), &[&i]) {
             Err(err) => panic!("{}", err.to_string()),
             Ok(rows) => {
                 let row = match rows.get(0) {
                     Some(row) => row,
                     None => {
+                        // Inner join failed to return any results - meaning new item
+                        // does not have existing roads near it
                         db.execute("
                             INSERT INTO master (
                                 name,

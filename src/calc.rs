@@ -221,7 +221,7 @@ pub fn main(pool: r2d2::Pool<r2d2_postgres::PostgresConnectionManager<postgres::
                     ) fx
                 )
                 WHERE
-                    py_geom.id = $1
+                    {iso}_geom.id = $1
         ", iso = &iso).as_str(), &[&i]).unwrap();
         pb.inc(1);
     });

@@ -33,7 +33,7 @@ impl Table for Country {
             )
         ", &self.name).as_str(), &[]).unwrap();
 
-        let countries = reqwest::blocking::get("https://github.com/datasets/geo-countries/raw/master/data/countries.geojson").unwrap()
+        let countries = reqwest::blocking::get("https://raw.githubusercontent.com/datasets/geo-countries/master/data/countries.geojson").unwrap()
             .text().unwrap();
 
         let countries = match countries.parse::<GeoJson>().unwrap() {

@@ -25,6 +25,14 @@ RUN cd ${HOME} \
     && ./mason/mason install osmium-tool 1.12.0 \
     && cp mason_packages/linux-x86_64/osmium-tool/1.12.0/bin/osmium /usr/bin/
 
+RUN curl 'https://nodejs.org/dist/v12.18.1/node-v12.18.1-linux-x64.tar.gz' | tar -xzv \
+    && cp ./node-v12.18.1-linux-x64/bin/node /usr/bin/ \
+    && ./node-v12.18.1-linux-x64/bin/npm install -g npm \
+    && npm install -g yarn \
+    && cd web \
+    && yarn install \
+    && yarn build
+
 ENV PATH="$HOME/.cargo/bin:${PATH}"
 
 RUN cargo build --release \

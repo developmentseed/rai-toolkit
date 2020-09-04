@@ -1,0 +1,12 @@
+version: '3'
+services:
+  rai:
+    image: developmentseed/rai:v1
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./postgres-data:/var/lib/postgresql/data
+      - ./:/home/rai/toolkit

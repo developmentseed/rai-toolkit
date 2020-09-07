@@ -28,7 +28,7 @@ RUN curl 'https://nodejs.org/dist/v12.18.1/node-v12.18.1-linux-x64.tar.gz' | tar
     && ./node-v12.18.1-linux-x64/bin/npm install -g npm \
     && npm install -g yarn
 
-COPY ./ $HOME/toolkit
+COPY . $HOME/toolkit/
 WORKDIR $HOME/toolkit
 
 RUN cd web \

@@ -1,6 +1,7 @@
 #!/bin/bash
 
 CC=$1
+export PGPASSWORD=$POSTGRES_PASSWORD
 
 TIMESTAMP=$(date +%s)
 
@@ -17,15 +18,16 @@ fi
 
 set -euo pipefail
 
-echo "
-    CREATE DATABASE rai;
-" | psql -U postgres
+# echo "
+#     CREATE DATABASE rai;
+# " | psql -U postgres -h db
 
+# CREATE EXTENSION postgis;
+# CREATE EXTENSION postgis_raster;
+#https://gis.stackexchange.com/a/341598
 echo "
-    CREATE EXTENSION postgis;
-    CREATE EXTENSION postgis_raster;
     CREATE SCHEMA IF NOT EXISTS pop;
-" | psql -U postgres rai
+" | psql -h $POSTGRES_HOST -U $POSTGRES_USER -d $POSTGRES_DB
 
 
 # -I Create a spatial index for imported data
@@ -38,4 +40,5 @@ raster2pgsql \
     -t auto \
     $1/*.asc pop.population \
     | tee /tmp/raster.sql \
-    | psql -U postgres rai
+    | psql -h $POSTGRES_HOST -U $POSTGRES_USER -d $POSTGRES_DB
+

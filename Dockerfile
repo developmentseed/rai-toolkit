@@ -2,8 +2,6 @@ FROM ubuntu:20.04
 
 EXPOSE 4001
 ENV HOME=/home/rai
-COPY ./ $HOME/toolkit
-WORKDIR $HOME/toolkit
 ENV DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update \
@@ -28,8 +26,12 @@ RUN cd ${HOME} \
 RUN curl 'https://nodejs.org/dist/v12.18.1/node-v12.18.1-linux-x64.tar.gz' | tar -xzv \
     && cp ./node-v12.18.1-linux-x64/bin/node /usr/bin/ \
     && ./node-v12.18.1-linux-x64/bin/npm install -g npm \
-    && npm install -g yarn \
-    && cd web \
+    && npm install -g yarn
+
+COPY ./ $HOME/toolkit
+WORKDIR $HOME/toolkit
+
+RUN cd web \
     && yarn install \
     && yarn build
 
@@ -37,6 +39,9 @@ ENV PATH="$HOME/.cargo/bin:${PATH}"
 
 RUN cargo build --release \
     && cp ${HOME}/toolkit/target/release/rai-toolkit /usr/bin/
+
+VOLUME /var/lib/postgresql/data
+EXPOSE 5432
 
 CMD service postgresql start \
     && tail -f /dev/null

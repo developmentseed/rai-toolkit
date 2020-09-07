@@ -5,8 +5,14 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+    environment:
+      POSTGRES_HOST: 'localhost'
+      POSTGRES_DB: 'rai'
+      POSTGRES_USER: 'postgres'
+      POSTGRES_PASSWORD: '1234'
     ports:
       - "5432:5432"
+      - "4001:4001"
     volumes:
       - ./postgres-data:/var/lib/postgresql/data
       - ./:/home/rai/toolkit

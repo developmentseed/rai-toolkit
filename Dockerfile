@@ -9,7 +9,7 @@ RUN apt-get update \
     && apt-get install -y tzdata \
     && dpkg-reconfigure --frontend noninteractive tzdata \
     && apt-get install -y curl build-essential libssl-dev pkg-config \
-    && apt-get install -y gdal-bin jq \
+    && apt-get install -y gdal-bin jq postgresql-contrib \
     && curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs 0.43 | sh -s -- -y
 
 RUN cd ${HOME} \
@@ -34,6 +34,3 @@ ENV PATH="$HOME/.cargo/bin:${PATH}"
 
 RUN cargo build --release \
     && cp ${HOME}/toolkit/target/release/rai-toolkit /usr/bin/
-
-# CMD service postgresql start \
-#     && tail -f /dev/null

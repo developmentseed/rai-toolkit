@@ -21,12 +21,7 @@ A raster population dataset is required to be loaded before any RAI calculations
 - Select the appropriate grid size
 - Download the zip file following the link
 - Unzip the archive
-
-Then, if using docker, use `docker cp` to copy the files into the running docker container by running the following command your terminal:
-
-```
-docker cp path-to-population-data-folder/ rai:/
-```
+- Save them on `rai-toolkit/<path-to-nasa-data-folder>` folder
 
 Once the files are available, run:
 

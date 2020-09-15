@@ -2,3 +2,4 @@
 **/*.rs.bk
 *.geojson
 *.geojsonld
+postgres-data/

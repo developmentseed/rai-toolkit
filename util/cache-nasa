@@ -18,13 +18,6 @@ fi
 
 set -euo pipefail
 
-# echo "
-#     CREATE DATABASE rai;
-# " | psql -U postgres -h db
-
-#https://gis.stackexchange.com/a/341598
-# CREATE EXTENSION postgis;
-# CREATE EXTENSION postgis_raster;
 echo "
     CREATE SCHEMA IF NOT EXISTS pop;
 " | psql -h $POSTGRES_HOST -U $POSTGRES_USER -d $POSTGRES_DB

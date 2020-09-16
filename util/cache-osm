@@ -26,7 +26,7 @@ if [[ $URL == "null" ]]; then
     exit 1
 fi
 
-wget $URL -O /tmp/$CC.osm.pbf
+curl $URL > /tmp/$CC.osm.pbf
 
 osmium export \
     --output-format geojsonseq \

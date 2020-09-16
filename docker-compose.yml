@@ -1,0 +1,31 @@
+version: '3'
+services:
+  db:
+    build:
+      context: ./dockerPG
+      dockerfile: Dockerfile
+    environment:
+      POSTGRES_HOST: 'db'
+      POSTGRES_DB: 'rai'
+      POSTGRES_USER: 'postgres'
+      POSTGRES_PASSWORD: '1234'
+      SET_SERVER_CONFING: 'true'
+      MACHINE_TYPE: 'xlarge'
+    ports:
+      -  "5432:5432"
+    volumes:
+      - ./postgres-data:/var/lib/postgresql/data
+  rai:
+    image: developmentseed/rai:v1
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      POSTGRES_HOST: 'db'
+      POSTGRES_DB: 'rai'
+      POSTGRES_USER: 'postgres'
+      POSTGRES_PASSWORD: '1234'
+    ports:
+      - "4001:4001"
+    volumes:
+      - ./:/home/rai/toolkit

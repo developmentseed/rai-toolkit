@@ -39,3 +39,4 @@ cargo run -- filter \
     > $(dirname $0)/../${CC}.geojsonld
 
 echo "ok - ./$CC.geojsonld"
+

@@ -5,7 +5,7 @@ fn main() {
     let cli_cnf = load_yaml!("cli.yml");
     let args = App::from(cli_cnf).get_matches();
 
-    let db_str = args.value_of("database").unwrap_or("postgres://postgres@localhost:5432/rai");
+    let db_str = args.value_of("database").unwrap_or("postgres://postgres:1234@db:5432/rai");
 
     let manager = PostgresConnectionManager::new(
         db_str.parse().unwrap(),
